@@ -130,3 +130,16 @@ describe('deal screens', () => {
     expect(await screen.findByText('Ссылка не работает')).toBeInTheDocument();
   });
 });
+
+describe('editing a deal keeps what was not changed', () => {
+  it('changing the markup keeps the site country (it drives the VAT suggestion)', async () => {
+    renderAt('/deals');
+    fireEvent.click(await screen.findByText('Rekonstrukce kanceláří, Kraków'));
+    fireEvent.click(await screen.findByRole('button', { name: 'изменить' }));
+    fireEvent.change(screen.getByLabelText('Наценка на себестоимость, %'), { target: { value: '27' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+    await waitFor(() => expect(screen.queryByLabelText('Наценка на себестоимость, %')).toBeNull());
+    const facts = screen.getByText('Страна объекта').closest('div')!;
+    expect(within(facts).getByText('PL')).toBeInTheDocument();
+  });
+});

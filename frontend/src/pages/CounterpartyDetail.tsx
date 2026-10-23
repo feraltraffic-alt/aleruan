@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { can } from '../permissions';
 import { Link, useParams } from 'react-router-dom';
 import { api, type CheckFinding, type CheckResult } from '../api';
 import { LoadError } from '../components/LoadError';
@@ -80,7 +81,7 @@ export function CounterpartyDetailPage() {
         <div className={`verdict ${c.checkStatus ?? ''}`}>
           <Status status={c.checkStatus} />
           <span className="when">{c.lastCheckedAt ? t('detail.lastCheck', { date: date(c.lastCheckedAt) }) : t('cp.never')}</span>
-          <button className="btn primary" onClick={runCheck} disabled={checking}>
+          <button className="btn primary" onClick={runCheck} disabled={checking || !can('counterparties.write')}>
             {checking ? t('detail.checking') : t('detail.check')}
           </button>
         </div>
@@ -103,7 +104,7 @@ export function CounterpartyDetailPage() {
           <div className="fill-row">
             <input className="input" value={account} onChange={(e) => { setAccount(e.target.value); setAccountError(null); }}
               aria-label={t('acct.input')} placeholder={t('acct.input')} aria-invalid={!!accountError} />
-            <button className="btn primary" disabled={accountBusy}>{t('acct.check')}</button>
+            <button className="btn primary" disabled={accountBusy || !can('counterparties.write')}>{t('acct.check')}</button>
           </div>
           {accountError && <p className="note bad" role="alert" style={{ marginTop: 12 }}>{accountError}</p>}
           {accountResult && (

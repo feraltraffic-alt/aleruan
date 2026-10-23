@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { can } from '../permissions';
 import { Link, useParams } from 'react-router-dom';
 import { api, type Rfq, type RfqInvitation } from '../api';
 import { Drawer } from '../components/Drawer';
@@ -48,7 +49,7 @@ export function RfqDetailPage() {
             {r.deadline ? t('rfq.until', { date: day(r.deadline) }) : t('rfq.noDeadline')}
           </p>
         </div>
-        {open && (
+        {open && can('tenders.write') && (
           <div className="moves">
             <button className="btn primary" onClick={() => setInviting(true)}>{t('rfq.invite')}</button>
             <button className="btn" onClick={cancel} disabled={action.busy}>
@@ -101,7 +102,7 @@ export function RfqDetailPage() {
                       {!o.complete && <span className="sub">{t('rfq.incomplete')}</span>}
                       {r.cheapestInvitationId === o.id && <span className="sub">{t('rfq.cheapest')}</span>}
                       {o.offerNote && <span className="sub offer-note">«{o.offerNote}»</span>}
-                      {open && (
+                      {open && can('tenders.write') && (
                         <button className="btn award" disabled={action.busy} onClick={() => award(o)}>
                           {confirmAward === o.id ? t('rfq.awardConfirm') : t('rfq.award')}
                         </button>

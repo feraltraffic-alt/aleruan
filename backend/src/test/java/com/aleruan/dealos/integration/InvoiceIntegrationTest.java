@@ -100,6 +100,13 @@ class InvoiceIntegrationTest extends IntegrationTestBase {
 
         Invoice paidPart = invoices.pay(issued.getId(), new BigDecimal("4000"), invoices.today());
         assertEquals(InvoiceStatus.ISSUED, paidPart.getStatus());
+        assertThrows(IllegalArgumentException.class, () -> invoices.pay(issued.getId(), new BigDecimal("20000.01"),
+                invoices.today()), "more than is still due");
+        assertThrows(IllegalStateException.class, () -> invoices.createDraft(deal.getId(), InvoiceService.Source.DEAL_LINES,
+                null), "the whole deal cannot be billed again once invoices exist");
+        assertThrows(IllegalArgumentException.class, () -> invoices.edit(invoices.createDraft(deal.getId(),
+                InvoiceService.Source.EMPTY, null).getId(), new Invoice.Settings(DocLanguage.CS, VatMode.STANDARD,
+                BigDecimal.ZERO, invoices.today(), invoices.today(), null), List.of()), "Czech VAT at 0 %");
         assertEquals(InvoiceStatus.PAID, invoices.pay(issued.getId(), new BigDecimal("20000"), invoices.today()).getStatus());
 
         InvoiceService.DealInvoicing pos = invoices.dealInvoicing(deal.getId());

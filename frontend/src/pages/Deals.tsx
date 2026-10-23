@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { can } from '../permissions';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, type Deal, type DealStatus } from '../api';
 import { LoadError } from '../components/LoadError';
@@ -26,7 +27,7 @@ export function DealsPage() {
     <>
       <div className="page-head">
         <h1>{t('deal.title')}</h1>
-        <button className="btn primary" onClick={() => setAdding(true)}>{t('deal.add')}</button>
+        {can('deals.write') && <button className="btn primary" onClick={() => setAdding(true)}>{t('deal.add')}</button>}
       </div>
       <div className="toolbar">
         <input className="input search" type="search" value={q} onChange={(e) => setQ(e.target.value)}

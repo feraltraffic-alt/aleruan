@@ -57,6 +57,12 @@ class DealIntegrationTest extends IntegrationTestBase {
                 LineKind.WORK, "Odstranění a nová omítka", "CONSTRUCTION", "m2", new BigDecimal("120"),
                 new BigDecimal("50"), null, null, sub.getId())));
 
+        // a cost-only edit after winning keeps the agreed price too
+        Deal edited = deals.updateLine(dealId, lineId, new DealService.LineData(LineKind.WORK, "Odstranění a nová omítka",
+                "CONSTRUCTION", "m2", new BigDecimal("100"), new BigDecimal("55"), null, null, sub.getId()));
+        assertEquals(new BigDecimal("6500.00"), edited.totals().price());
+        assertEquals(new BigDecimal("1000.00"), edited.totals().margin());
+
         // tender result after winning: cost changes, selling price stays
         deals.assignCost(dealId, lineId, new BigDecimal("45"), sub.getId(), "RFQ test");
         Deal after = deals.get(dealId);
@@ -64,7 +70,7 @@ class DealIntegrationTest extends IntegrationTestBase {
         assertEquals(new BigDecimal("2000.00"), after.totals().margin());
 
         assertThrows(IllegalStateException.class, () -> deals.moveTo(dealId, DealStatus.DRAFT));
-        assertEquals(java.util.List.of("CREATED", "LINE_ADDED", "STATUS_CHANGED", "STATUS_CHANGED", "COST_ASSIGNED"),
+        assertEquals(java.util.List.of("CREATED", "LINE_ADDED", "STATUS_CHANGED", "STATUS_CHANGED", "LINE_UPDATED", "COST_ASSIGNED"),
                 audit.history(DealService.AUDIT_TYPE, dealId.toString()).stream().map(r -> r.action()).toList());
         assertTrue(audit.verifyChain().valid());
     }

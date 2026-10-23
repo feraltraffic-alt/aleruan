@@ -41,7 +41,7 @@ class CnbExchangeRates implements ExchangeRates {
         String text;
         try {
             // today's fixing appears at 14:30, so only finished days are cached
-            text = day.isBefore(LocalDate.now()) ? cache.computeIfAbsent(day, this::fetch) : fetch(day);
+            text = day.isBefore(LocalDate.now(java.time.ZoneId.of("Europe/Prague"))) ? cache.computeIfAbsent(day, this::fetch) : fetch(day);
         } catch (RuntimeException e) {
             throw new RatesUnavailableException("ČNB exchange rates are not available right now", e);
         }

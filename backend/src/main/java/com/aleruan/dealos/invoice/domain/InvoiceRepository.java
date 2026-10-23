@@ -24,6 +24,17 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
     List<UUID> stagesOn(@Param("dealId") UUID dealId, @Param("kind") InvoiceKind kind,
                         @Param("credited") InvoiceStatus credited);
 
+    /**
+     * Serialises invoicing of one deal until the transaction ends, so two people cannot put the same
+     * stage or the same deal lines on two invoices at the same moment.
+     */
+    @Query(value = "select cast(pg_advisory_xact_lock(:key) as text)", nativeQuery = true)
+    String lockDeal(@Param("key") long key);
+
+    default void lockDeal(UUID dealId) {
+        lockDeal(dealId.getMostSignificantBits() ^ dealId.getLeastSignificantBits());
+    }
+
     default List<UUID> invoicedStages(UUID dealId) {
         return stagesOn(dealId, InvoiceKind.INVOICE, InvoiceStatus.CREDITED);
     }

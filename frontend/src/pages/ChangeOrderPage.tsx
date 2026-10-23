@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { can } from '../permissions';
 import { Link, useParams } from 'react-router-dom';
 import { api, type ChangeOrder, type DealLine } from '../api';
 import { Drawer } from '../components/Drawer';
@@ -41,8 +42,9 @@ export function ChangeOrderPage() {
     setConfirmCancel(false);
     apply(await action.run(() => api.changeOrderAction(c.id, a)));
   };
-  const costsOpen = ['DRAFT', 'SENT', 'APPROVED'].includes(c.status);
+  const costsOpen = (['DRAFT', 'SENT', 'APPROVED'].includes(c.status)) && can('changes.write');
 
+  const canWrite = can('changes.write');
   return (
     <>
       <Link to={`/deals/${c.dealId}`} className="crumb">{t('rfq.back', { deal: d.number })}</Link>
@@ -53,11 +55,11 @@ export function ChangeOrderPage() {
         </div>
         <div className="moves">
           {c.lines.length > 0 && <button className="btn" onClick={() => openSheet(c.id).catch((e) => action.setError(String(e)))}>{t('co.sheet')}</button>}
-          {c.nextStatuses.includes('SENT') && <button className="btn primary" disabled={action.busy} onClick={() => run('send')}>{t('co.send')}</button>}
-          {c.nextStatuses.includes('APPROVED') && <button className="btn primary" onClick={() => setDeciding('approve')}>{t('co.approve')}</button>}
-          {c.nextStatuses.includes('REJECTED') && <button className="btn" onClick={() => setDeciding('reject')}>{t('co.reject')}</button>}
-          {c.nextStatuses.includes('DRAFT') && <button className="btn" disabled={action.busy} onClick={() => run('revise')}>{t('co.revise')}</button>}
-          {c.nextStatuses.includes('CANCELLED') && (
+          {canWrite && c.nextStatuses.includes('SENT') && <button className="btn primary" disabled={action.busy} onClick={() => run('send')}>{t('co.send')}</button>}
+          {canWrite && c.nextStatuses.includes('APPROVED') && <button className="btn primary" onClick={() => setDeciding('approve')}>{t('co.approve')}</button>}
+          {canWrite && c.nextStatuses.includes('REJECTED') && <button className="btn" onClick={() => setDeciding('reject')}>{t('co.reject')}</button>}
+          {canWrite && c.nextStatuses.includes('DRAFT') && <button className="btn" disabled={action.busy} onClick={() => run('revise')}>{t('co.revise')}</button>}
+          {canWrite && c.nextStatuses.includes('CANCELLED') && (
             <button className="btn" disabled={action.busy} onClick={() => run('cancel')}>
               {confirmCancel ? t('deal.confirm', { what: t('co.cancel') }) : t('co.cancel')}
             </button>
@@ -75,13 +77,13 @@ export function ChangeOrderPage() {
         <div><dt>{t('totals.price')}</dt><dd>{money(c.totals.price, d.currency)}</dd></div>
         <div><dt>{t('totals.margin')}</dt><dd className={c.totals.margin < 0 ? 'neg' : ''}>{money(c.totals.margin, d.currency)}
           {c.totals.marginPct != null && <span className="sub">{num(c.totals.marginPct, 1)} %</span>}</dd></div>
-        {c.pricesEditable && <div><dt>&nbsp;</dt><dd><button className="linkish" onClick={() => setHeading(true)}>{t('co.edit')}</button></dd></div>}
+        {canWrite && c.pricesEditable && <div><dt>&nbsp;</dt><dd><button className="linkish" onClick={() => setHeading(true)}>{t('co.edit')}</button></dd></div>}
       </dl>
 
       <section className="section">
         <div className="section-head">
           <h2>{t('line.title')}</h2>
-          {c.pricesEditable && <button className="btn" onClick={() => setLine('new')}>{t('line.add')}</button>}
+          {canWrite && c.pricesEditable && <button className="btn" onClick={() => setLine('new')}>{t('line.add')}</button>}
         </div>
         {!c.pricesEditable && costsOpen && <p className="note">{t('co.frozen')}</p>}
         <div className="panel table-wrap">

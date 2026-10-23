@@ -1,25 +1,30 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { I18nProvider } from './i18n';
-import { AuditPage } from './pages/Audit';
-import { CounterpartiesPage } from './pages/Counterparties';
-import { CounterpartyDetailPage } from './pages/CounterpartyDetail';
-import { ChangeOrderPage } from './pages/ChangeOrderPage';
-import { DashboardPage } from './pages/Dashboard';
-import { DealDetailPage } from './pages/DealDetail';
-import { DealsPage } from './pages/Deals';
-import { OfferPageView } from './pages/Offer';
-import { RfqDetailPage } from './pages/RfqDetail';
-import { SiteDetailPage } from './pages/SiteDetail';
-import { SitesPage } from './pages/Sites';
-import { WorkloadPage } from './pages/Workload';
-import { DefectsPage } from './pages/Defects';
-import { InvoiceDetailPage } from './pages/InvoiceDetail';
-import { InvoicesPage, MoneyExportPage } from './pages/Invoices';
-import { ReferencePage } from './pages/Reference';
+
+// Each section loads when first opened, so the first screen appears faster.
+const AuditPage = lazy(() => import('./pages/Audit').then((m) => ({ default: m.AuditPage })));
+const CounterpartiesPage = lazy(() => import('./pages/Counterparties').then((m) => ({ default: m.CounterpartiesPage })));
+const CounterpartyDetailPage = lazy(() => import('./pages/CounterpartyDetail').then((m) => ({ default: m.CounterpartyDetailPage })));
+const ChangeOrderPage = lazy(() => import('./pages/ChangeOrderPage').then((m) => ({ default: m.ChangeOrderPage })));
+const DashboardPage = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.DashboardPage })));
+const DealDetailPage = lazy(() => import('./pages/DealDetail').then((m) => ({ default: m.DealDetailPage })));
+const DealsPage = lazy(() => import('./pages/Deals').then((m) => ({ default: m.DealsPage })));
+const OfferPageView = lazy(() => import('./pages/Offer').then((m) => ({ default: m.OfferPageView })));
+const RfqDetailPage = lazy(() => import('./pages/RfqDetail').then((m) => ({ default: m.RfqDetailPage })));
+const SiteDetailPage = lazy(() => import('./pages/SiteDetail').then((m) => ({ default: m.SiteDetailPage })));
+const SitesPage = lazy(() => import('./pages/Sites').then((m) => ({ default: m.SitesPage })));
+const WorkloadPage = lazy(() => import('./pages/Workload').then((m) => ({ default: m.WorkloadPage })));
+const DefectsPage = lazy(() => import('./pages/Defects').then((m) => ({ default: m.DefectsPage })));
+const InvoiceDetailPage = lazy(() => import('./pages/InvoiceDetail').then((m) => ({ default: m.InvoiceDetailPage })));
+const InvoicesPage = lazy(() => import('./pages/Invoices').then((m) => ({ default: m.InvoicesPage })));
+const MoneyExportPage = lazy(() => import('./pages/Invoices').then((m) => ({ default: m.MoneyExportPage })));
+const ReferencePage = lazy(() => import('./pages/Reference').then((m) => ({ default: m.ReferencePage })));
 
 export function AppRoutes() {
   return (
+    <Suspense fallback={<p className="empty" aria-busy="true" />}>
     <Routes>
       <Route path="offer/:token" element={<OfferPageView />} />
       <Route element={<Layout />}>
@@ -42,6 +47,7 @@ export function AppRoutes() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+    </Suspense>
   );
 }
 

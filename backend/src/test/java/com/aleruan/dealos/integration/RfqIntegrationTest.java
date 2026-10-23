@@ -55,7 +55,8 @@ class RfqIntegrationTest extends IntegrationTestBase {
         Set<UUID> lineIds = deal.getLines().stream().map(l -> l.getId()).collect(Collectors.toSet());
 
         Rfq rfq = rfqs.create(deal.getId(), null, LocalDate.now().plusDays(7), lineIds);
-        assertEquals("Hala, Kraków", rfq.getTitle());
+        // the default title names the deal, never the customer's project name
+        assertEquals("Poptávka " + deal.getNumber(), rfq.getTitle());
         assertEquals(2, rfq.getItems().size());
 
         String cheapToken = rfqs.invite(rfq.getId(), cheap.getId(), false).token();

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
+import { can } from '../permissions';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api, type Site, type SiteDetails, type SiteStatus, type SiteTask, type TaskData } from '../api';
 import { Drawer } from '../components/Drawer';
@@ -49,10 +50,10 @@ export function SiteDetailPage() {
           <h1>{s.name}</h1>
           <p className="lead">
             <SiteStatusTag status={s.status} />{' '}
-            {s.dealNumber && <Link to={`/deals/${s.dealId}`}>{t('site.deal', { number: s.dealNumber })}</Link>}
+            {s.dealNumber && (can('deals.read') ? <Link to={`/deals/${s.dealId}`}>{t('site.deal', { number: s.dealNumber })}</Link> : t('site.deal', { number: s.dealNumber }))}
           </p>
         </div>
-        <button className="btn" onClick={() => setEditing(true)}>{t('site.edit')}</button>
+        {can('sites.write') && <button className="btn" onClick={() => setEditing(true)}>{t('site.edit')}</button>}
       </div>
       {action.error && <p className="note bad" role="alert">{action.error}</p>}
 
@@ -75,7 +76,7 @@ export function SiteDetailPage() {
               <>{t('site.handedOver', { date: day(s.handoverDate) })}
                 {s.warrantyUntil && <span className="sub">{t('site.warrantyTill', { date: day(s.warrantyUntil) })}</span>}</>
             ) : t('site.notHandedOver')}{' '}
-            <button className="linkish" onClick={() => setHandover(true)}>{s.handoverDate ? t('deal.change') : t('site.markHandover')}</button>
+            {can('sites.write') && <button className="linkish" onClick={() => setHandover(true)}>{s.handoverDate ? t('deal.change') : t('site.markHandover')}</button>}
           </dd></div>
           {s.notes && <div className="wide"><dt>{t('site.notes')}</dt><dd>{s.notes}</dd></div>}
         </dl>
@@ -101,14 +102,14 @@ export function SiteDetailPage() {
             <p className="lead">{t('sched.lead')}</p>
           </div>
           <div className="moves">
-            <button className="btn" onClick={fromDeal} disabled={action.busy}>{t('sched.fromDeal')}</button>
-            <button className="btn primary" onClick={() => setTask('new')}>{t('sched.add')}</button>
+            {can('sites.write') && <button className="btn" onClick={fromDeal} disabled={action.busy}>{t('sched.fromDeal')}</button>}
+            {can('sites.write') && <button className="btn primary" onClick={() => setTask('new')}>{t('sched.add')}</button>}
           </div>
         </div>
         <div className="panel">
           {s.tasks.length === 0 ? <p className="empty">{t('sched.empty')}</p> : (
             <>
-              <Schedule site={s} today={today} onOpen={setTask} />
+              <Schedule site={s} today={today} onOpen={can('sites.write') ? setTask : undefined} />
               <div className="table-wrap">
                 <table className="lines">
                   <thead>
@@ -127,13 +128,13 @@ export function SiteDetailPage() {
                         ) : <span className="sub">{t('line.noSubcontractor')}</span>}</td>
                         <td className="nowrap">{day(x.start)} – {day(x.end)}{x.late && <span className="sub neg">{t('sched.late')}</span>}</td>
                         <td className="progress-dd"><Progress pct={x.progressPct} late={x.late} /> {x.progressPct} %</td>
-                        <td><span className="row-actions">
+                        <td>{can('sites.write') && <span className="row-actions">
                           <button className="linkish" onClick={() => setTask(x)}>{t('line.editShort')}</button>
                           <button className="linkish danger" aria-label={t('line.remove', { what: x.title })}
                             onClick={async () => { const n = await action.run(() => api.removeTask(s.id, x.id)); if (n) site.setData(n); }}>
                             {t('line.removeShort')}
                           </button>
-                        </span></td>
+                        </span>}</td>
                       </tr>
                     ))}
                   </tbody>

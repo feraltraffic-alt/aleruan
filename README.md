@@ -30,6 +30,10 @@ cd frontend && npm install && npm run dev
 
 Фронтенд без бэкенда: `VITE_USE_MOCKS=true npm run dev` — работает на демо-данных.
 
+## Права
+
+Кто что может — в [docs/ROLES.md](docs/ROLES.md). Сервер запрещает всё, что не разрешено явно.
+
 ## Настройки
 
 | Переменная | Где | Зачем |

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { can } from '../permissions';
 import { api, type DiaryData, type DiaryEntry, type Site } from '../api';
 import { LoadError } from '../components/LoadError';
 import { Photos } from '../components/Photos';
@@ -30,7 +31,7 @@ export function DiarySection({ site }: { site: Site }) {
           <h2>{t('diary.title')}</h2>
           <p className="lead">{t('diary.lead')}</p>
         </div>
-        {!mode && <button className="btn primary" onClick={() => setMode({ kind: 'new' })}>{t('diary.add')}</button>}
+        {!mode && can('site.records') && <button className="btn primary" onClick={() => setMode({ kind: 'new' })}>{t('diary.add')}</button>}
       </div>
       {mode && (
         <DiaryForm site={site} mode={mode} onCancel={() => setMode(null)}
@@ -59,10 +60,10 @@ export function DiarySection({ site }: { site: Site }) {
                     )}
                     <p className="diary-text">{e.text}</p>
                     {e.correctedBy.length > 0 && <p className="sub neg">{t('diary.wasCorrected')}</p>}
-                    <Photos owner="diary" ownerId={e.id} photos={e.photos} editable={e.editable}
+                    <Photos owner="diary" ownerId={e.id} photos={e.photos} editable={e.editable && can('site.records')}
                       onChange={(photos) => replace({ ...e, photos })} />
                     <div className="row-actions">
-                      {e.editable
+                      {!can('site.records') ? null : e.editable
                         ? <button className="linkish" onClick={() => setMode({ kind: 'edit', entry: e })}>{t('line.editShort')}</button>
                         : <button className="linkish" onClick={() => setMode({ kind: 'correct', entry: e })}>{t('diary.correct')}</button>}
                     </div>

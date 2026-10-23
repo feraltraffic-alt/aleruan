@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { can } from '../permissions';
 import { api, type CheckStatus } from '../api';
 import { LoadError } from '../components/LoadError';
 import { Status } from '../components/Status';
@@ -10,7 +11,8 @@ const ORDER: (CheckStatus | 'none')[] = ['RED', 'YELLOW', 'GREEN', 'none'];
 export function DashboardPage() {
   const { t } = useI18n();
   const cps = useLoad(() => api.listCounterparties(), []);
-  const chain = useLoad(() => api.verifyAudit(), []);
+  const showAudit = can('audit.read');
+  const chain = useLoad(() => (showAudit ? api.verifyAudit() : Promise.resolve(null)), [showAudit]);
 
   const counts = { RED: 0, YELLOW: 0, GREEN: 0, none: 0 };
   cps.data?.forEach((c) => counts[c.checkStatus ?? 'none']++);
@@ -53,7 +55,7 @@ export function DashboardPage() {
             </>
           )}
         </div>
-        <div className="panel box">
+        {showAudit && <div className="panel box">
           <h2>{t('dash.chain')}</h2>
           {chain.error ? <LoadError message={chain.error} onRetry={chain.reload} /> : chain.data && (
             <div className={`seal${chain.data.valid ? '' : ' broken'}`}>
@@ -65,7 +67,7 @@ export function DashboardPage() {
             </div>
           )}
           <p style={{ marginTop: 16 }}><Link to="/audit">{t('nav.audit')}</Link></p>
-        </div>
+        </div>}
       </div>
     </>
   );

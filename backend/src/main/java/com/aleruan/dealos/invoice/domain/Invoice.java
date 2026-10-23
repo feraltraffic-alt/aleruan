@@ -180,6 +180,9 @@ public class Invoice {
         if (s.vatRate() == null || s.vatRate().signum() < 0 || s.vatRate().compareTo(BigDecimal.valueOf(100)) >= 0) {
             throw new IllegalArgumentException("VAT rate must be between 0 and 100");
         }
+        if (s.vatMode() != null && s.vatMode().chargesVat() && s.vatRate().signum() == 0) {
+            throw new IllegalArgumentException("Czech VAT needs a rate; choose another VAT treatment for 0 %");
+        }
         if (s.taxableDate() == null || s.dueDate() == null) {
             throw new IllegalArgumentException("Set the date of taxable supply and the due date");
         }
@@ -237,6 +240,10 @@ public class Invoice {
         }
         if (on == null || (issueDate != null && on.isBefore(issueDate.minusDays(60)))) {
             throw new IllegalArgumentException("Give the payment date");
+        }
+        if (amount.compareTo(total.subtract(paidAmount)) > 0) {
+            throw new IllegalArgumentException("The payment is more than the " + total.subtract(paidAmount)
+                    + " " + currency + " still due; check the amount");
         }
         this.paidAmount = paidAmount.add(amount);
         this.paidOn = on;

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { can } from '../permissions';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, type Counterparty, type CounterpartyRole } from '../api';
 import { LoadError } from '../components/LoadError';
@@ -28,7 +29,7 @@ export function CounterpartiesPage() {
     <>
       <div className="page-head">
         <h1>{t('cp.title')}</h1>
-        <button className="btn primary" onClick={() => setAdding(true)}>{t('cp.add')}</button>
+        {can('counterparties.write') && <button className="btn primary" onClick={() => setAdding(true)}>{t('cp.add')}</button>}
       </div>
       <div className="toolbar">
         <input className="input search" type="search" value={q} onChange={(e) => setQ(e.target.value)}

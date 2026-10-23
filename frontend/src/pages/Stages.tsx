@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { can } from '../permissions';
 import { api, type Site, type Stage, type StageDecision } from '../api';
 import { Drawer } from '../components/Drawer';
 import { LoadError } from '../components/LoadError';
@@ -34,7 +35,7 @@ export function StagesSection({ site }: { site: Site }) {
           <h2>{t('stage.title')}</h2>
           <p className="lead">{t('stage.lead')}</p>
         </div>
-        <button className="btn" onClick={() => setEditing('new')} disabled={!data.data}>{t('stage.add')}</button>
+        {can('sites.write') && <button className="btn" onClick={() => setEditing('new')} disabled={!data.data}>{t('stage.add')}</button>}
       </div>
       {action.error && <p className="note bad" role="alert">{action.error}</p>}
       {data.error ? <LoadError message={data.error} onRetry={data.reload} /> : !data.data ? null : (
@@ -82,12 +83,12 @@ export function StagesSection({ site }: { site: Site }) {
                       <td>{s.plannedDate ? day(s.plannedDate) : '—'}</td>
                       <td className="num">{money(s.amount, cur)}</td>
                       <td><span className="row-actions">
-                        {(s.status === 'PLANNED' || s.status === 'REJECTED') && <button className="linkish" onClick={() => setEditing(s)}>{t('line.editShort')}</button>}
-                        {s.nextStatuses.includes('SUBMITTED') && <button className="linkish" onClick={() => run(() => api.stageAction(s.id, 'submit'))}>{t('stage.submit')}</button>}
-                        {s.nextStatuses.includes('ACCEPTED') && <button className="linkish" onClick={() => setDeciding(s)}>{t('stage.decide')}</button>}
-                        {s.status === 'SUBMITTED' && <button className="linkish" onClick={() => run(() => api.stageAction(s.id, 'withdraw'))}>{t('stage.withdraw')}</button>}
+                        {can('sites.write') && (s.status === 'PLANNED' || s.status === 'REJECTED') && <button className="linkish" onClick={() => setEditing(s)}>{t('line.editShort')}</button>}
+                        {can('sites.write') && s.nextStatuses.includes('SUBMITTED') && <button className="linkish" onClick={() => run(() => api.stageAction(s.id, 'submit'))}>{t('stage.submit')}</button>}
+                        {can('sites.write') && s.nextStatuses.includes('ACCEPTED') && <button className="linkish" onClick={() => setDeciding(s)}>{t('stage.decide')}</button>}
+                        {can('sites.write') && s.status === 'SUBMITTED' && <button className="linkish" onClick={() => run(() => api.stageAction(s.id, 'withdraw'))}>{t('stage.withdraw')}</button>}
                         {s.status !== 'PLANNED' && <button className="linkish" onClick={() => openProtocol(s.id).catch((e) => action.setError(String(e)))}>{t('stage.protocol')}</button>}
-                        {s.status === 'PLANNED' && <button className="linkish danger" aria-label={t('line.remove', { what: s.title })}
+                        {can('sites.write') && s.status === 'PLANNED' && <button className="linkish danger" aria-label={t('line.remove', { what: s.title })}
                           onClick={() => run(() => api.removeStage(s.id).then(() => true))}>{t('line.removeShort')}</button>}
                       </span></td>
                     </tr>

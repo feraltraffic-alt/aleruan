@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { can } from '../permissions';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, type ChangeOrderStatus, type Deal } from '../api';
 import { Drawer } from '../components/Drawer';
@@ -28,7 +29,7 @@ export function ChangeOrdersSection({ deal }: { deal: Deal }) {
           <h2>{t('co.title')}</h2>
           <p className="lead">{t('co.lead')}</p>
         </div>
-        {alive && <button className="btn" onClick={() => setCreating(true)}>{t('co.add')}</button>}
+        {alive && can('changes.write') && <button className="btn" onClick={() => setCreating(true)}>{t('co.add')}</button>}
       </div>
       {list.error ? <LoadError message={list.error} onRetry={list.reload} /> : !list.data ? null : (
         <div className="panel table-wrap">

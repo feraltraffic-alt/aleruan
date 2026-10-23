@@ -9,6 +9,7 @@ import { localToday } from '../dates';
 import { useI18n } from '../i18n';
 import { invoiceAmounts, lineTotal } from '../invoiceMath';
 import { parseNum } from '../numbers';
+import { can } from '../permissions';
 
 const LANGS: DocLanguage[] = ['CS', 'EN', 'PL', 'DE'];
 const MODES: VatMode[] = ['STANDARD', 'REVERSE_CHARGE_EU', 'REVERSE_CHARGE_CZ', 'OUTSIDE_SCOPE'];
@@ -28,7 +29,7 @@ export function InvoiceDetailPage() {
   if (inv.error) return <LoadError message={inv.error} onRetry={inv.reload} />;
   const i = inv.data;
   if (!i) return <p className="empty" aria-busy="true">{t('loading')}</p>;
-  return i.status === 'DRAFT'
+  return i.status === 'DRAFT' && can('invoices.write')
     ? <DraftEditor key={i.id} invoice={i} onSaved={inv.setData} />
     : <IssuedInvoice invoice={i} onChange={inv.setData} />;
 }
@@ -250,8 +251,8 @@ function IssuedInvoice({ invoice: i, onChange }: { invoice: Invoice; onChange(i:
     <>
       <Header i={i} />
       <div className="moves page-actions">
-        <button className="btn primary" onClick={open}>{t('quote.open')}</button>
-        {i.kind === 'INVOICE' && (i.status === 'ISSUED' || i.status === 'PAID') && (
+        {i.status !== 'DRAFT' && <button className="btn primary" onClick={open}>{t('quote.open')}</button>}
+        {can('invoices.write') && i.kind === 'INVOICE' && (i.status === 'ISSUED' || i.status === 'PAID') && (
           <button className="btn" onClick={makeCredit} disabled={action.busy}>
             {credit === null ? t('inv.credit') : t('deal.confirm', { what: t('inv.credit') })}
           </button>
@@ -302,7 +303,7 @@ function IssuedInvoice({ invoice: i, onChange }: { invoice: Invoice; onChange(i:
         </dl>
       </section>
 
-      {i.kind === 'INVOICE' && i.status === 'ISSUED' && (
+      {can('invoices.write') && i.kind === 'INVOICE' && i.status === 'ISSUED' && (
         <form className="panel box pay-form" onSubmit={recordPayment} noValidate>
           <h2>{t('inv.recordPayment')}</h2>
           <div className="grid3">

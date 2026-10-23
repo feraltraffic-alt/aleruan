@@ -5,7 +5,6 @@ import com.aleruan.dealos.deal.DealCatalog;
 import com.aleruan.dealos.subcontracting.application.RfqService;
 import com.aleruan.dealos.subcontracting.domain.Rfq;
 import com.aleruan.dealos.subcontracting.domain.RfqInvitation;
-import com.aleruan.dealos.subcontracting.domain.RfqStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
@@ -36,7 +35,11 @@ class PublicOfferController {
                      List<Item> items, Map<UUID, BigDecimal> myPrices, String myNote, Instant submittedAt) {
     }
 
-    record OfferRequest(@NotNull Map<UUID, BigDecimal> prices, String note) {
+    /** Offers come from outside the company: sizes and amounts are bounded. */
+    record OfferRequest(@NotNull @jakarta.validation.constraints.Size(max = 500)
+                        Map<@NotNull UUID, @NotNull @jakarta.validation.constraints.DecimalMin("0")
+                                @jakarta.validation.constraints.Digits(integer = 12, fraction = 2) BigDecimal> prices,
+                        @jakarta.validation.constraints.Size(max = 2000) String note) {
     }
 
     private final RfqService service;
@@ -63,7 +66,7 @@ class PublicOfferController {
         Rfq rfq = inv.getRfq();
         String company = counterparties.find(inv.getSubcontractorId()).map(c -> c.legalName()).orElse("");
         String currency = deals.find(rfq.getDealId()).map(DealCatalog.DealSummary::currency).orElse(null);
-        return new OfferPage(rfq.getTitle(), company, currency, rfq.getDeadline(), rfq.getStatus() == RfqStatus.OPEN,
+        return new OfferPage(rfq.getTitle(), company, currency, rfq.getDeadline(), service.acceptsOffers(rfq),
                 rfq.getItems().stream().map(i -> new Item(i.getId(), i.getDescription(), i.getUnit(), i.getQuantity())).toList(),
                 inv.getOfferPrices(), inv.getOfferNote(), inv.getOfferSubmittedAt());
     }

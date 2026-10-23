@@ -112,6 +112,7 @@ public class InvoiceService {
         if (!INVOICEABLE.contains(deal.status())) {
             throw new IllegalStateException("Deal " + deal.number() + " can be invoiced once the customer has accepted it");
         }
+        invoices.lockDeal(dealId);
         CounterpartySummary customer = customer(deal);
         VatAdvisor.Suggestion vat = suggestion(deal, customer);
         LocalDate taxable = today();
@@ -127,8 +128,17 @@ public class InvoiceService {
                     taxable = LocalDate.ofInstant(stage.acceptedAt(), PRAGUE); // the supply happened at acceptance
                 }
             }
-            case DEAL_LINES -> deals.customerLines(dealId).forEach(l -> lines.add(new Invoice.LineData(l.description(),
-                    l.unit(), l.quantity(), l.unitPrice(), null)));
+            case DEAL_LINES -> {
+                boolean anyInvoice = invoices.search(null, dealId, null).stream().anyMatch(i ->
+                        i.getKind() == InvoiceKind.INVOICE && i.getStatus() != InvoiceStatus.CREDITED);
+                if (anyInvoice) {
+                    // the whole deal on one invoice is only safe while nothing has been invoiced yet
+                    throw new IllegalStateException("Deal " + deal.number() + " already has invoices; invoice the "
+                            + "remaining work by stages or with a blank invoice so nothing is billed twice");
+                }
+                deals.customerLines(dealId).forEach(l -> lines.add(new Invoice.LineData(l.description(),
+                        l.unit(), l.quantity(), l.unitPrice(), null)));
+            }
             case EMPTY -> { }
         }
         Invoice invoice = invoices.save(Invoice.draft(dealId, deal.customerId(), deal.currency(),
@@ -143,6 +153,7 @@ public class InvoiceService {
     @Transactional
     public Invoice edit(UUID id, Invoice.Settings settings, List<Invoice.LineData> lines) {
         Invoice invoice = get(id);
+        invoices.lockDeal(invoice.getDealId());
         Set<UUID> allowed = new HashSet<>(sites.acceptedStages(invoice.getDealId()).stream().map(AcceptedStage::id).toList());
         List<UUID> taken = invoices.invoicedStages(invoice.getDealId());
         Set<UUID> mine = new HashSet<>(invoice.getLines().stream().map(l -> l.getStageId()).filter(java.util.Objects::nonNull).toList());
@@ -175,8 +186,16 @@ public class InvoiceService {
     @Transactional
     public Invoice issue(UUID id, BigDecimal manualRate) {
         Invoice invoice = get(id);
+        invoices.lockDeal(invoice.getDealId());
         if (invoice.getStatus() != InvoiceStatus.DRAFT) {
             throw new IllegalStateException("Invoice " + invoice.getNumber() + " is already issued");
+        }
+        List<UUID> elsewhere = invoices.search(null, invoice.getDealId(), null).stream()
+                .filter(i -> !i.getId().equals(id) && i.getKind() == InvoiceKind.INVOICE
+                        && i.getStatus() != InvoiceStatus.CREDITED && i.getStatus() != InvoiceStatus.DRAFT)
+                .flatMap(i -> i.getLines().stream().map(l -> l.getStageId())).filter(java.util.Objects::nonNull).toList();
+        if (invoice.getLines().stream().anyMatch(l -> l.getStageId() != null && elsewhere.contains(l.getStageId()))) {
+            throw new IllegalStateException("A stage on this draft has been invoiced meanwhile; remove that line");
         }
         ExchangeRates.Rate rate = rateFor(invoice.getCurrency(), invoice.getTaxableDate(), manualRate);
         freeze(invoice, rate, null);

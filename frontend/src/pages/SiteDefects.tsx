@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { can } from '../permissions';
 import { Link } from 'react-router-dom';
 import { api, type Defect, type DefectData, type DefectSeverity, type DefectStatus, type Site } from '../api';
 import { Drawer } from '../components/Drawer';
@@ -59,7 +60,7 @@ export function DefectCard({ defect, onChange, showSite, onEdit }: {
       </div>
       {d.description && <p className="defect-text">{d.description}</p>}
       {d.fixNote && <p className="sub">{d.status === 'DISMISSED' ? t('defect.dismissedWhy') : d.status === 'OPEN' ? t('defect.reopenedWhy') : t('defect.fixNote')}: {d.fixNote}</p>}
-      <Photos owner="defects" ownerId={d.id} photos={d.photos} editable={d.status !== 'CLOSED'}
+      <Photos owner="defects" ownerId={d.id} photos={d.photos} editable={d.status !== 'CLOSED' && can('site.records')}
         onChange={(photos) => onChange({ ...d, photos })} />
       {pending && (
         <div className="field defect-note">
@@ -69,7 +70,7 @@ export function DefectCard({ defect, onChange, showSite, onEdit }: {
       )}
       {action.error && <p className="note bad" role="alert">{action.error}</p>}
       <div className="moves">
-        {d.nextStatuses.map((s) => (
+        {can('site.records') && d.nextStatuses.map((s) => (
           <button key={s} className={`btn small${s === 'CLOSED' || s === 'FIXED' ? ' primary' : ''}`} disabled={action.busy}
             onClick={() => move(s)}>
             {pending === s ? t('defect.confirm', { what: t(MOVE[`${d.status}>${s}`]) }) : t(MOVE[`${d.status}>${s}`])}
@@ -102,7 +103,7 @@ export function DefectsSection({ site, onChanged }: { site: Site; onChanged(): v
             {site.warrantyUntil ? t('defect.warrantyUntil', { date: day(site.warrantyUntil) }) : t('defect.lead')}
           </p>
         </div>
-        <button className="btn primary" onClick={() => setEditing('new')}>{t('defect.add')}</button>
+        {can('site.records') && <button className="btn primary" onClick={() => setEditing('new')}>{t('defect.add')}</button>}
       </div>
       <label className="toggle">
         <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /> {t('defect.showClosed')}

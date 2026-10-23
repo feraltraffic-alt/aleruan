@@ -363,8 +363,9 @@ export function createDealsMock(
       if (patch.defaultMarkupPct != null && patch.defaultMarkupPct !== d.defaultMarkupPct) requirePrices(d);
       if (patch.title?.trim()) d.title = patch.title.trim();
       if (patch.defaultMarkupPct != null) d.defaultMarkupPct = patch.defaultMarkupPct;
-      if (patch.siteCountry !== undefined) d.siteCountry = patch.siteCountry?.toUpperCase() || null;
-      if (patch.notes !== undefined) d.notes = patch.notes;
+      // like the backend: site country and notes are always replaced, so a caller must send them
+      d.siteCountry = patch.siteCountry?.toUpperCase() || null;
+      d.notes = patch.notes;
       record('Deal', id, 'EDITED', patch);
       return delay(view(d));
     },
@@ -409,7 +410,7 @@ export function createDealsMock(
       if (!input.lineIds.length) throw new ApiError(400, 'Pick at least one line');
       if (input.deadline && input.deadline < now().slice(0, 10)) throw new ApiError(400, 'The deadline is in the past');
       const r: StoredRfq = {
-        id: uid(), dealId, title: input.title?.trim() || `${d.number} ${d.title}`, deadline: input.deadline ?? null,
+        id: uid(), dealId, title: input.title?.trim() || `Poptávka ${d.number}`, deadline: input.deadline ?? null,
         status: 'OPEN', awardedInvitationId: null, invitations: [],
         items: d.lines.filter((l) => input.lineIds.includes(l.id)).map((l) => ({ id: uid(), dealLineId: l.id })),
       };

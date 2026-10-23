@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { api, type Deal, type InvoiceSource } from '../api';
 import { useI18n } from '../i18n';
+import { can } from '../permissions';
 import { InvoiceStatusTag } from './invoiceBits';
 import { useAction } from './useAction';
 import { useLoad } from './useLoad';
@@ -10,10 +11,10 @@ export function DealInvoicing({ deal }: { deal: Deal }) {
   const { t, money, day } = useI18n();
   const navigate = useNavigate();
   const action = useAction();
-  const can = ['WON', 'IN_PROGRESS', 'COMPLETED'].includes(deal.status);
-  const pos = useLoad(() => (can ? api.dealInvoicing(deal.id) : Promise.resolve(null)), [deal.id, can]);
-  const list = useLoad(() => (can ? api.listInvoices({ dealId: deal.id }) : Promise.resolve([])), [deal.id, can]);
-  if (!can) return null;
+  const invoiceable = ['WON', 'IN_PROGRESS', 'COMPLETED'].includes(deal.status);
+  const pos = useLoad(() => (invoiceable ? api.dealInvoicing(deal.id) : Promise.resolve(null)), [deal.id, invoiceable]);
+  const list = useLoad(() => (invoiceable ? api.listInvoices({ dealId: deal.id }) : Promise.resolve([])), [deal.id, invoiceable]);
+  if (!invoiceable) return null;
 
   const draft = async (source: InvoiceSource, stageId?: string) => {
     const i = await action.run(() => api.draftInvoice(deal.id, source, stageId));
@@ -29,17 +30,17 @@ export function DealInvoicing({ deal }: { deal: Deal }) {
           <h2>{t('inv.dealTitle')}</h2>
           <p className="lead">{t('inv.dealLead')}</p>
         </div>
-        <div className="moves">
+        {can('invoices.write') && <div className="moves">
           <button className="btn" onClick={() => draft('DEAL_LINES')} disabled={action.busy}>{t('inv.fromLines')}</button>
           <button className="btn" onClick={() => draft('EMPTY')} disabled={action.busy}>{t('inv.blank')}</button>
-        </div>
+        </div>}
       </div>
       {action.error && <p className="note bad" role="alert">{action.error}</p>}
       {p && (
         <div className="panel inv-position">
           <div><span>{t('inv.contract')}</span><b>{money(p.contractValue, p.currency)}</b></div>
           <div><span>{t('inv.invoiced')}</span><b>{money(p.invoiced, p.currency)}</b></div>
-          <div><span>{t('inv.paid')}</span><b>{money(p.paid, p.currency)}</b></div>
+          <div><span>{t('inv.paidGross')}</span><b>{money(p.paid, p.currency)}</b></div>
           <div><span>{t('inv.outstanding')}</span><b className={p.outstanding > 0 ? 'neg' : ''}>{money(p.outstanding, p.currency)}</b></div>
           <div><span>{t('inv.remaining')}</span><b>{money(p.remaining, p.currency)}</b></div>
         </div>
@@ -54,8 +55,8 @@ export function DealInvoicing({ deal }: { deal: Deal }) {
                   <span className="sub">{t('inv.acceptedOn', { date: day(stage.acceptedAt), by: stage.acceptedBy ?? '' })}
                     {stage.withRemarks && `, ${t('inv.withRemarks')}`}</span></span>
                 <span className="moves"><b>{money(stage.amount, p!.currency)}</b>
-                  <button className="btn small primary" onClick={() => draft('STAGE', stage.id)} disabled={action.busy}>
-                    {t('inv.invoiceStage')}</button></span>
+                  {can('invoices.write') && <button className="btn small primary" onClick={() => draft('STAGE', stage.id)} disabled={action.busy}>
+                    {t('inv.invoiceStage')}</button>}</span>
               </li>
             ))}
           </ul>

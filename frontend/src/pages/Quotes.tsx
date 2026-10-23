@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { can } from '../permissions';
 import { api, type Deal, type IssueQuote, type QuoteLanguage, type VatMode } from '../api';
 import { Drawer } from '../components/Drawer';
 import { LoadError } from '../components/LoadError';
@@ -39,7 +40,7 @@ export function QuotesSection({ deal, onIssued }: { deal: Deal; onIssued(): void
           <h2>{t('quote.title')}</h2>
           <p className="lead">{t('quote.lead')}</p>
         </div>
-        {deal.pricesEditable && deal.lines.length > 0 && (
+        {deal.pricesEditable && deal.lines.length > 0 && can('quotes.issue') && (
           <button className="btn primary" onClick={() => setIssuing(true)}>{t('quote.issue')}</button>
         )}
       </div>

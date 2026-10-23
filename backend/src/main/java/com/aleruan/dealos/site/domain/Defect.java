@@ -115,6 +115,11 @@ public class Defect {
         this.warranty = handover != null && d.foundOn().isAfter(handover);
     }
 
+    /** Recomputes the warranty flag when the handover date is recorded or corrected afterwards. */
+    public void applyHandover(LocalDate handover) {
+        this.warranty = handover != null && foundOn.isAfter(handover);
+    }
+
     public void moveTo(DefectStatus target, String note, String actor, Instant now) {
         if (!status.canMoveTo(target)) {
             throw new IllegalStateException("Defect #" + seq + " cannot move from " + status + " to " + target);

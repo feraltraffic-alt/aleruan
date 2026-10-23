@@ -78,6 +78,7 @@ public class SiteRecordsService {
             throw new IllegalArgumentException("Handover is recorded once it has happened");
         }
         site.setHandover(date, date == null ? null : warrantyMonths == null ? 24 : warrantyMonths);
+        defects.findBySiteIdOrderBySeqDesc(siteId).forEach(d -> d.applyHandover(date));
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("handoverDate", date);
         payload.put("warrantyMonths", site.getWarrantyMonths());

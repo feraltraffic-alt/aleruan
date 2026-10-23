@@ -693,10 +693,10 @@ const ru = {
   'inv.dealLead': 'Выставляйте по принятым этапам — так сумма подтверждена протоколом.',
   'inv.fromLines': 'Фактура по позициям',
   'inv.blank': 'Пустая фактура',
-  'inv.contract': 'Договор',
-  'inv.invoiced': 'Выставлено',
-  'inv.outstanding': 'Ждём оплаты',
-  'inv.remaining': 'Ещё не выставлено',
+  'inv.contract': 'Договор, без НДС',
+  'inv.invoiced': 'Выставлено, без НДС',
+  'inv.outstanding': 'Ждём оплаты, с НДС',
+  'inv.remaining': 'Не выставлено, без НДС',
   'inv.readyStages': 'Принятые этапы — можно выставлять',
   'inv.acceptedOn': 'принят {date}, {by}',
   'inv.withRemarks': 'с замечаниями',
@@ -709,6 +709,8 @@ const ru = {
   'action.PAYMENT': 'Записана оплата',
   'action.CREDITED': 'Скорректирована',
   'inv.vat': 'Режим НДС',
+  'err.forbidden': 'Нет прав на это действие или раздел. Если они нужны — попросите администратора добавить роль.',
+  'inv.paidGross': 'Оплачено, с НДС',
 };
 
 type Dict = Record<keyof typeof ru, string>;
@@ -1403,10 +1405,10 @@ const cs: Dict = {
   'inv.dealLead': 'Fakturujte podle převzatých etap — částka je pak podložena protokolem.',
   'inv.fromLines': 'Faktura z položek',
   'inv.blank': 'Prázdná faktura',
-  'inv.contract': 'Smlouva',
-  'inv.invoiced': 'Vyfakturováno',
-  'inv.outstanding': 'Čeká na úhradu',
-  'inv.remaining': 'Zbývá vyfakturovat',
+  'inv.contract': 'Smlouva bez DPH',
+  'inv.invoiced': 'Vyfakturováno bez DPH',
+  'inv.outstanding': 'Čeká na úhradu vč. DPH',
+  'inv.remaining': 'Zbývá vyfakturovat bez DPH',
   'inv.readyStages': 'Převzaté etapy k fakturaci',
   'inv.acceptedOn': 'převzato {date}, {by}',
   'inv.withRemarks': 's výhradami',
@@ -1419,6 +1421,8 @@ const cs: Dict = {
   'action.PAYMENT': 'Zapsána úhrada',
   'action.CREDITED': 'Opravena',
   'inv.vat': 'Režim DPH',
+  'err.forbidden': 'K této akci nebo části nemáte oprávnění. Pokud ho potřebujete, požádejte administrátora o roli.',
+  'inv.paidGross': 'Uhrazeno vč. DPH',
 };
 
 const en: Dict = {
@@ -2111,10 +2115,10 @@ const en: Dict = {
   'inv.dealLead': 'Invoice accepted stages, so each amount is backed by a protocol.',
   'inv.fromLines': 'Invoice from lines',
   'inv.blank': 'Blank invoice',
-  'inv.contract': 'Contract',
-  'inv.invoiced': 'Invoiced',
-  'inv.outstanding': 'Outstanding',
-  'inv.remaining': 'Not invoiced yet',
+  'inv.contract': 'Contract, excl. VAT',
+  'inv.invoiced': 'Invoiced, excl. VAT',
+  'inv.outstanding': 'Outstanding, incl. VAT',
+  'inv.remaining': 'Not invoiced, excl. VAT',
   'inv.readyStages': 'Accepted stages ready to invoice',
   'inv.acceptedOn': 'accepted {date} by {by}',
   'inv.withRemarks': 'with remarks',
@@ -2127,6 +2131,8 @@ const en: Dict = {
   'action.PAYMENT': 'Payment recorded',
   'action.CREDITED': 'Credited',
   'inv.vat': 'VAT treatment',
+  'err.forbidden': 'You do not have access to this action or section. Ask an administrator for the role if you need it.',
+  'inv.paidGross': 'Paid, incl. VAT',
 };
 
 export const DICTS: Record<Lang, Dict> = { ru, cs, en };

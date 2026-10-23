@@ -31,11 +31,7 @@ class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable()) // stateless bearer-token API, no cookies
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health/**").permitAll()
-                        // subcontractor offer pages: authorised by the unguessable token in the URL
-                        .requestMatchers("/api/public/**").permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(AccessRules::apply)
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(new KeycloakJwtConverter())))
                 .build();
     }
@@ -43,6 +39,9 @@ class SecurityConfig {
     @Bean
     @ConditionalOnProperty(name = "dealos.security.enabled", havingValue = "false")
     SecurityFilterChain openChain(HttpSecurity http) throws Exception {
+        org.slf4j.LoggerFactory.getLogger(SecurityConfig.class).warn(
+                "SECURITY IS OFF (dealos.security.enabled=false): every request runs as an administrator. "
+                        + "Use this only for local development, never on a server reachable by others.");
         return http
                 .csrf(csrf -> csrf.disable())
                 .anonymous(a -> a.principal(CurrentActor.SYSTEM).authorities(Roles.ALL_AUTHORITIES))

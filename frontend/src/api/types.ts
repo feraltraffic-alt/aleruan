@@ -345,7 +345,8 @@ export interface Api {
   listDeals(q?: string, status?: DealStatus): Promise<DealListItem[]>;
   getDeal(id: string): Promise<Deal>;
   createDeal(input: NewDeal): Promise<Deal>;
-  editDeal(id: string, patch: { title?: string; defaultMarkupPct?: number; siteCountry?: string | null; notes?: string | null }): Promise<Deal>;
+  /** Replaces title, markup, site country and notes; send them all (a missing site country or note is saved as empty). */
+  editDeal(id: string, data: { title: string; defaultMarkupPct: number; siteCountry: string | null; notes: string | null }): Promise<Deal>;
   addLine(dealId: string, line: LineData): Promise<Deal>;
   updateLine(dealId: string, lineId: string, line: LineData): Promise<Deal>;
   removeLine(dealId: string, lineId: string): Promise<Deal>;

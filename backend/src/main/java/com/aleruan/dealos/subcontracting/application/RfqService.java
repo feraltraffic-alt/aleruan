@@ -67,7 +67,7 @@ public class RfqService {
         if (lines.size() != lineIds.size()) {
             throw new IllegalArgumentException("Some lines are not part of deal " + deal.number());
         }
-        Rfq rfq = new Rfq(dealId, title == null || title.isBlank() ? deal.title() : title.trim(), deadline,
+        Rfq rfq = new Rfq(dealId, title == null || title.isBlank() ? "Poptávka " + deal.number() : title.trim(), deadline,
                 actor.name(), clock.instant());
         lines.forEach(l -> rfq.addItem(l.id(), l.description(), l.unit(), l.quantity(), l.workType()));
         rfqs.save(rfq);
@@ -96,7 +96,7 @@ public class RfqService {
 
     @Transactional
     public Rfq award(UUID rfqId, UUID invitationId) {
-        Rfq rfq = get(rfqId);
+        Rfq rfq = locked(rfqId);
         RfqInvitation winner = rfq.award(invitationId);
         for (RfqItem item : rfq.getItems()) {
             BigDecimal price = winner.getOfferPrices().get(item.getId());
@@ -110,7 +110,7 @@ public class RfqService {
 
     @Transactional
     public Rfq cancel(UUID rfqId) {
-        Rfq rfq = get(rfqId);
+        Rfq rfq = locked(rfqId);
         rfq.cancel();
         audit.record(AUDIT_TYPE, rfqId.toString(), "CANCELLED", null);
         return rfq;
@@ -142,12 +142,23 @@ public class RfqService {
 
     @Transactional
     public RfqInvitation submitOffer(String token, Map<UUID, BigDecimal> prices, String note) {
-        Rfq rfq = byToken(token);
+        Rfq rfq = locked(rfqs.rfqIdByTokenHash(InviteTokens.hash(token))
+                .orElseThrow(() -> new NotFoundException("This link is not valid")));
         RfqInvitation inv = invitationByToken(rfq, token);
         rfq.submitOffer(inv, prices, note == null ? null : note.trim(), today(), clock.instant());
         audit.recordAs(subActor(inv), AUDIT_TYPE, rfq.getId().toString(), "OFFER_SUBMITTED", Map.of(
                 "invitationId", inv.getId(), "prices", stringKeys(prices), "note", String.valueOf(note)));
         return inv;
+    }
+
+    private Rfq locked(UUID id) {
+        return rfqs.lockById(id).orElseThrow(() -> new NotFoundException("Request " + id + " not found"));
+    }
+
+    /** Whether offers are still accepted today: open and the deadline (end of day, Prague) not passed. */
+    public boolean acceptsOffers(Rfq rfq) {
+        return rfq.getStatus() == com.aleruan.dealos.subcontracting.domain.RfqStatus.OPEN
+                && (rfq.getDeadline() == null || !today().isAfter(rfq.getDeadline()));
     }
 
     private Rfq byToken(String token) {

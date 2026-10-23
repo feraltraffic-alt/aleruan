@@ -3,6 +3,9 @@ import type { Api, CheckResult, Counterparty, NewCounterparty } from './types';
 
 const json = (method: string, body?: unknown): RequestInit => ({ method, body: body === undefined ? undefined : JSON.stringify(body) });
 
+/** Message of a 403: the UI translates it into "you have no access" instead of showing a raw code. */
+export const FORBIDDEN = 'FORBIDDEN';
+
 /** Error with the server's problem detail (RFC 7807) message, ready to show to the user. */
 export class ApiError extends Error {
   readonly status: number;
@@ -27,6 +30,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {}),
     },
   });
+  if (res.status === 403) throw new ApiError(403, FORBIDDEN);
   if (!res.ok) {
     let detail = res.statusText;
     try {

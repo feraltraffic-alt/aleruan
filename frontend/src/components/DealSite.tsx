@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { api, type Deal } from '../api';
 import { useI18n } from '../i18n';
+import { can } from '../permissions';
 import { Progress, SiteStatusTag } from './siteBits';
 import { useAction } from './useAction';
 import { useLoad } from './useLoad';
@@ -12,7 +13,7 @@ export function DealSite({ deal }: { deal: Deal }) {
   const action = useAction();
   const sites = useLoad(() => api.listSites({ dealId: deal.id }), [deal.id]);
   const site = sites.data?.[0];
-  const canOpen = deal.status === 'WON' || deal.status === 'IN_PROGRESS';
+  const canOpen = (deal.status === 'WON' || deal.status === 'IN_PROGRESS') && can('sites.open');
   if (sites.loading || (!site && !canOpen)) return null;
 
   const open = async () => {

@@ -112,11 +112,18 @@ public class Deal {
         DealLine line = line(lineId);
         boolean priceTouched = line.getQuantity().compareTo(quantity) != 0
                 || !same(line.getMarkupPct(), markupPct) || !same(line.getFixedUnitPrice(), fixedUnitPrice)
-                || line.getKind() != kind || !line.getDescription().equals(description);
+                || line.getKind() != kind || !line.getDescription().equals(description)
+                || !java.util.Objects.equals(line.getUnit(), unit);
         if (priceTouched) {
             requirePriceChangesAllowed();
         } else {
             requireCostChangesAllowed();
+            if (!status.allowsPriceChanges()) {
+                // only cost or subcontractor changes on an agreed price: keep what the customer pays
+                line.pinUnitPrice(DealPricing.price(line.pricingInput(), defaultMarkupPct).unitPrice());
+                fixedUnitPrice = line.getFixedUnitPrice();
+                markupPct = line.getMarkupPct();
+            }
         }
         line.update(kind, description, workType, unit, quantity, unitCost, markupPct, fixedUnitPrice, subcontractorId);
         return line;
@@ -131,8 +138,8 @@ public class Deal {
     public void assignCost(UUID lineId, BigDecimal unitCost, UUID subcontractorId) {
         requireCostChangesAllowed();
         DealLine line = line(lineId);
-        if (!status.allowsPriceChanges()) {
-            // the customer price is agreed: pin it before the cost moves, so only the margin changes
+        if (status != DealStatus.DRAFT) {
+            // a quote went out or the customer agreed: pin the price before the cost moves, so only the margin changes
             line.pinUnitPrice(DealPricing.price(line.pricingInput(), defaultMarkupPct).unitPrice());
         }
         line.assignCost(unitCost, subcontractorId);

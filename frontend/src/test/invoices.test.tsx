@@ -67,7 +67,7 @@ describe('invoice screens', () => {
     renderAt('/deals');
     fireEvent.click(await screen.findByText('Fasáda, Wesel'));
     const block = await screen.findByRole('region', { name: 'Фактуры по сделке' });
-    expect(await within(block).findByText('Договор')).toBeInTheDocument();
+    expect(await within(block).findByText('Договор, без НДС')).toBeInTheDocument();
     fireEvent.click(within(block).getByRole('button', { name: 'Фактура по позициям' }));
     const first = await screen.findByLabelText('Описание строки 1');
     fireEvent.change(first, { target: { value: '' } });

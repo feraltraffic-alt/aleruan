@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { can } from '../permissions';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, type Deal, type DealLine, type DealStatus } from '../api';
 import { Drawer } from '../components/Drawer';
@@ -34,6 +35,7 @@ export function DealDetailPage() {
   if (deal.error) return <LoadError message={deal.error} onRetry={deal.reload} />;
   const d = deal.data;
   if (!d) return <p className="empty" aria-busy="true">{t('loading')}</p>;
+  const editable = d.pricesEditable && can('deals.write');
 
   const apply = (next: Deal | undefined) => { if (next) deal.setData(next); };
   const move = async (s: DealStatus) => {
@@ -45,7 +47,7 @@ export function DealDetailPage() {
     e.preventDefault();
     const v = parseNum(markupDraft ?? '');
     if (!(v > -100)) { action.setError(t('deal.form.markupFormat')); return; }
-    const next = await action.run(() => api.editDeal(d.id, { defaultMarkupPct: v }));
+    const next = await action.run(() => api.editDeal(d.id, { title: d.title, defaultMarkupPct: v, siteCountry: d.siteCountry, notes: d.notes }));
     if (next) { deal.setData(next); setMarkupDraft(null); }
   };
   const remove = async (l: DealLine) => apply(await action.run(() => api.removeLine(d.id, l.id)));
@@ -62,7 +64,7 @@ export function DealDetailPage() {
           <p className="lead">{d.number} · <DealStatusTag status={d.status} /></p>
         </div>
         <div className="moves">
-          {d.nextStatuses.map((s) => (
+          {can('deals.write') && d.nextStatuses.map((s) => (
             <button key={s} className={`btn${s === 'QUOTED' || s === 'WON' || s === 'IN_PROGRESS' || s === 'COMPLETED' ? ' primary' : ''}`}
               disabled={action.busy} onClick={() => move(s)}>
               {confirm === s ? t('deal.confirm', { what: t(`deal.to.${s}`) }) : t(`deal.to.${s}`)}
@@ -118,7 +120,7 @@ export function DealDetailPage() {
             {markupDraft == null ? (
               <>
                 {num(d.defaultMarkupPct)} %{' '}
-                {d.pricesEditable && (
+                {editable && (
                   <button className="linkish" onClick={() => setMarkupDraft(String(d.defaultMarkupPct))}>
                     {t('deal.change')}
                   </button>
@@ -140,7 +142,7 @@ export function DealDetailPage() {
       <section className="section">
         <div className="section-head">
           <h2>{t('line.title')}</h2>
-          {d.pricesEditable && <button className="btn" onClick={() => setEditing('new')}>{t('line.add')}</button>}
+          {editable && <button className="btn" onClick={() => setEditing('new')}>{t('line.add')}</button>}
         </div>
         {!d.pricesEditable && <p className="note">{t('deal.frozen')}</p>}
         <div className="panel table-wrap">
@@ -156,7 +158,7 @@ export function DealDetailPage() {
                   <th className="num">{t('line.priceTotal')}</th>
                   <th className="num">{t('totals.margin')}</th>
                   <th>{t('line.subcontractor')}</th>
-                  {d.pricesEditable && <th><span className="sr">{t('line.actions')}</span></th>}
+                  {editable && <th><span className="sr">{t('line.actions')}</span></th>}
                 </tr>
               </thead>
               <tbody>
@@ -185,7 +187,7 @@ export function DealDetailPage() {
                         </>
                       ) : <span className="sub">{t('line.noSubcontractor')}</span>}
                     </td>
-                    {d.pricesEditable && (
+                    {editable && (
                       <td><span className="row-actions">
                         <button className="linkish" onClick={() => setEditing(l)}>{t('line.editShort')}</button>
                         <button className="linkish danger" onClick={() => remove(l)}
@@ -201,7 +203,7 @@ export function DealDetailPage() {
       </section>
 
       <QuotesSection deal={d} onIssued={deal.reload} />
-      <DealInvoicing deal={d} />
+      {can('invoices.read') && <DealInvoicing deal={d} />}
 
       <ChangeOrdersSection deal={d} />
 
@@ -212,7 +214,7 @@ export function DealDetailPage() {
             <p className="lead">{t('rfq.lead')}</p>
           </div>
           {d.lines.length > 0 && !['LOST', 'COMPLETED', 'CANCELLED'].includes(d.status) && (
-            <button className="btn" onClick={() => setTender(true)}>{t('rfq.add')}</button>
+            can('tenders.write') && <button className="btn" onClick={() => setTender(true)}>{t('rfq.add')}</button>
           )}
         </div>
         {rfqs.error ? <LoadError message={rfqs.error} onRetry={rfqs.reload} /> : (
@@ -290,7 +292,7 @@ function RfqForm({ deal, onClose }: { deal: Deal; onClose(): void }) {
         </fieldset>
         <div className="field">
           <label htmlFor="r-title">{t('rfq.col.title')}</label>
-          <input id="r-title" className="input" value={title} placeholder={`${deal.number} ${deal.title}`}
+          <input id="r-title" className="input" value={title} placeholder={`Poptávka ${deal.number}`}
             onChange={(e) => setTitle(e.target.value)} />
         </div>
         <div className="field">
