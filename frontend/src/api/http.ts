@@ -95,6 +95,17 @@ export const httpApi: Api = {
     return res.blob();
   },
 
+  config: () => request('/config'),
+  listSites: (f = {}) => request(`/sites${qs({ ...f })}`),
+  getSite: (id) => request(`/sites/${id}`),
+  createSite: (dealId) => request(`/deals/${dealId}/site`, json('POST')),
+  editSite: (id, details) => request(`/sites/${id}`, json('PUT', details)),
+  addTask: (siteId, task) => request(`/sites/${siteId}/tasks`, json('POST', task)),
+  updateTask: (siteId, taskId, task) => request(`/sites/${siteId}/tasks/${taskId}`, json('PUT', task)),
+  removeTask: (siteId, taskId) => request(`/sites/${siteId}/tasks/${taskId}`, json('DELETE')),
+  tasksFromDeal: (siteId) => request(`/sites/${siteId}/tasks/from-deal`, json('POST')),
+  workload: (from, to) => request(`/workload${qs({ from, to })}`),
+
   openOffer: (token) => request(`/public/rfq/${token}`),
   submitOffer: (token, prices, note) => request(`/public/rfq/${token}/offer`, json('POST', { prices, note })),
 };

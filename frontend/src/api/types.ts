@@ -196,6 +196,45 @@ export interface IssueQuote {
   language: QuoteLanguage; validDays: number; vatMode: VatMode; vatRate?: number | null; terms?: string | null;
 }
 
+export interface ClientConfig { googleMapsApiKey: string | null; googleMapsMapId: string | null }
+
+export type SiteStatus = 'PLANNED' | 'ACTIVE' | 'ON_HOLD' | 'DONE';
+
+export interface SiteParty { id: string; legalName: string; country: string; checkStatus: CheckStatus | null }
+
+export interface SiteTask {
+  id: string; position: number; title: string; workType: string | null; dealLineId: string | null;
+  subcontractor: SiteParty | null; start: string; end: string; progressPct: number; late: boolean;
+}
+
+export interface Site {
+  id: string; dealId: string; dealNumber: string | null; dealStatus: DealStatus | null; name: string;
+  address: string | null; city: string | null; country: string | null; latitude: number | null; longitude: number | null;
+  projectManager: string | null; foreman: string | null; plannedStart: string | null; plannedEnd: string | null;
+  status: SiteStatus; notes: string | null; customer: SiteParty | null; progressPct: number; lateTasks: number;
+  workTypes: string[]; createdAt: string; tasks: SiteTask[];
+}
+
+export interface SiteDetails {
+  name: string; address: string | null; city: string | null; country: string | null; latitude: number | null;
+  longitude: number | null; projectManager: string | null; foreman: string | null; plannedStart: string | null;
+  plannedEnd: string | null; status: SiteStatus; notes: string | null;
+}
+
+export interface SiteFilter {
+  status?: SiteStatus; country?: string; city?: string; pm?: string; customerId?: string; workType?: string; dealId?: string;
+}
+
+export interface TaskData {
+  title: string; workType: string | null; subcontractorId: string | null; start: string; end: string; progressPct: number;
+}
+
+export interface WorkloadRow {
+  subcontractor: SiteParty;
+  tasks: { taskId: string; title: string; siteId: string; siteName: string; start: string; end: string; progressPct: number }[];
+  weeks: { monday: string; parallelTasks: number }[];
+}
+
 export interface Api {
   listCounterparties(q?: string, role?: CounterpartyRole): Promise<Counterparty[]>;
   getCounterparty(id: string): Promise<Counterparty>;
@@ -231,6 +270,17 @@ export interface Api {
   issueQuote(dealId: string, input: IssueQuote): Promise<Quote>;
   /** The stored document (PDF in production, an HTML stand-in in demo mode). */
   quoteFile(id: string): Promise<Blob>;
+
+  config(): Promise<ClientConfig>;
+  listSites(filter?: SiteFilter): Promise<Site[]>;
+  getSite(id: string): Promise<Site>;
+  createSite(dealId: string): Promise<Site>;
+  editSite(id: string, details: SiteDetails): Promise<Site>;
+  addTask(siteId: string, task: TaskData): Promise<Site>;
+  updateTask(siteId: string, taskId: string, task: TaskData): Promise<Site>;
+  removeTask(siteId: string, taskId: string): Promise<Site>;
+  tasksFromDeal(siteId: string): Promise<Site>;
+  workload(from: string, to: string): Promise<WorkloadRow[]>;
 
   openOffer(token: string): Promise<OfferPage>;
   submitOffer(token: string, prices: Record<string, number>, note: string): Promise<OfferPage>;

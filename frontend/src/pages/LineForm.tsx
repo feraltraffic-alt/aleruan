@@ -158,7 +158,7 @@ export function LineForm({ deal, line, onClose, onSaved }: Props) {
         )}
         {action.error && <p className="note bad" role="alert">{action.error}</p>}
         <div className="actions">
-          <button className="btn primary" disabled={action.busy}>{line ? t('form.save') : t('line.add')}</button>
+          <button className="btn primary" disabled={action.busy}>{line ? t('common.save') : t('line.add')}</button>
           <button type="button" className="btn" onClick={onClose}>{t('form.cancel')}</button>
         </div>
       </form>

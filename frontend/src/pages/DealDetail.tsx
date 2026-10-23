@@ -12,6 +12,7 @@ import { useI18n } from '../i18n';
 import { parseNum } from '../numbers';
 import { LineForm } from './LineForm';
 import { QuotesSection } from './Quotes';
+import { DealSite } from '../components/DealSite';
 
 /** Moves that end the deal ask for a second click. */
 const FINAL: DealStatus[] = ['LOST', 'CANCELLED'];
@@ -68,6 +69,7 @@ export function DealDetailPage() {
       </div>
       {action.error && <p className="note bad" role="alert">{action.error}</p>}
       <Warnings warnings={d.warnings} />
+      <DealSite deal={d} />
 
       <section className="panel totals" aria-label={t('totals.title')}>
         <div className="totals-figures">
@@ -115,7 +117,7 @@ export function DealDetailPage() {
               <form className="inline-edit" onSubmit={saveMarkup}>
                 <input className="input" inputMode="decimal" value={markupDraft} aria-label={t('deal.form.markup')}
                   onChange={(e) => setMarkupDraft(e.target.value)} autoFocus />
-                <button className="btn" disabled={action.busy}>{t('form.save')}</button>
+                <button className="btn" disabled={action.busy}>{t('common.save')}</button>
                 <button type="button" className="linkish" onClick={() => setMarkupDraft(null)}>{t('form.cancel')}</button>
               </form>
             )}

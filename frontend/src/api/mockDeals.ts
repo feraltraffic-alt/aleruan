@@ -5,6 +5,8 @@ import type {
 import { ApiError } from './http';
 import { priceLine, totals } from '../pricing';
 import { languageFor, suggestVat, vatAmount } from '../vat';
+import { addDays, localToday, mondayOf } from '../dates';
+import { createSitesMock, type SitesApi } from './mockSites';
 
 /** Deals and tenders for the demo API; mirrors the backend rules that the UI relies on. */
 
@@ -41,7 +43,7 @@ export function createDealsMock(
   counterparties: Counterparty[],
   record: (type: string, id: string, action: string, payload: unknown) => void,
   delay: <T>(v: T) => Promise<T>,
-): DealsApi {
+): DealsApi & SitesApi {
   const deals: StoredDeal[] = [];
   const rfqs: StoredRfq[] = [];
   const quotes: (Quote & { dealId: string; html: string })[] = [];
@@ -204,7 +206,53 @@ export function createDealsMock(
     d.status = 'QUOTED';
   }
 
+  const sitesMock = createSitesMock(counterparties, { find: (id) => deals.find((x) => x.id === id) }, record, delay);
+
+  // Two won deals with sites, scheduled around today, so the map, schedule and workload have something to show.
+  const rhein = counterparties.find((c) => c.legalName.startsWith('Montage Rhein'));
+  if (customer && rhein && subs.length >= 2) {
+    const mon = mondayOf(localToday());
+    const won = (title: string, cust: string, country: string, created: string, lines: LineData[]) => {
+      const d = create({ title, customerId: cust, direction: 'CONSTRUCTION', siteCountry: country, currency: 'EUR',
+        defaultMarkupPct: 22 });
+      d.createdAt = created;
+      lines.forEach((l) => d.lines.push({ ...l, id: uid(), position: d.lines.length + 1 }));
+      d.status = 'IN_PROGRESS';
+      return d;
+    };
+    const hala = won('Hala magazynowa, Gliwice', customer.id, 'PL', '2026-09-02T09:00:00Z', [
+      { kind: 'WORK', description: 'Montáž ocelové konstrukce', workType: 'INSTALLATION', unit: 't', quantity: 42,
+        unitCost: 610, subcontractorId: subs[1].id },
+      { kind: 'WORK', description: 'Elektroinstalace haly', workType: 'ELECTRICAL', unit: 'kpl', quantity: 1,
+        unitCost: 18400, subcontractorId: subs[1].id },
+    ]);
+    sitesMock.seed(hala.id, { address: 'ul. Portowa 12', city: 'Gliwice', latitude: 50.2945, longitude: 18.6714,
+      projectManager: 'lena', foreman: 'pavel', plannedStart: addDays(mon, -21), plannedEnd: addDays(mon, 34),
+      status: 'ACTIVE' }, [
+      { title: 'Montáž ocelové konstrukce', workType: 'INSTALLATION', dealLineId: null, subcontractorId: subs[1].id,
+        start: addDays(mon, -21), end: addDays(mon, -3), progressPct: 80 },
+      { title: 'Elektroinstalace haly', workType: 'ELECTRICAL', dealLineId: null, subcontractorId: subs[1].id,
+        start: addDays(mon, 2), end: addDays(mon, 25), progressPct: 0 },
+    ]);
+    const fasada = won('Fasáda, Wesel', rhein.id, 'DE', '2026-09-10T09:00:00Z', [
+      { kind: 'WORK', description: 'Zateplení fasády ETICS', workType: 'FINISHING', unit: 'm2', quantity: 400,
+        unitCost: 35, subcontractorId: subs[0].id },
+    ]);
+    sitesMock.seed(fasada.id, { address: 'Industriestraße 4', city: 'Wesel', latitude: 51.6586, longitude: 6.6178,
+      projectManager: 'lena', foreman: 'marek', plannedStart: addDays(mon, -7), plannedEnd: addDays(mon, 27),
+      status: 'ACTIVE' }, [
+      { title: 'Lešení', workType: 'INSTALLATION', dealLineId: null, subcontractorId: subs[0].id,
+        start: addDays(mon, -7), end: addDays(mon, -4), progressPct: 100 },
+      { title: 'Zateplení fasády ETICS', workType: 'FINISHING', dealLineId: null, subcontractorId: subs[0].id,
+        start: addDays(mon, -3), end: addDays(mon, 20), progressPct: 15 },
+      { title: 'Elektro: venkovní osvětlení', workType: 'ELECTRICAL', dealLineId: null, subcontractorId: subs[1].id,
+        start: addDays(mon, 7), end: addDays(mon, 11), progressPct: 0 },
+    ]);
+  }
+  const { seed: _seed, ...sitesApi } = sitesMock;
+
   return {
+    ...sitesApi,
     listDeals: (q, status) => {
       const needle = q?.toLowerCase().trim();
       return delay(deals

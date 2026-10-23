@@ -9,6 +9,9 @@ import { DealDetailPage } from './pages/DealDetail';
 import { DealsPage } from './pages/Deals';
 import { OfferPageView } from './pages/Offer';
 import { RfqDetailPage } from './pages/RfqDetail';
+import { SiteDetailPage } from './pages/SiteDetail';
+import { SitesPage } from './pages/Sites';
+import { WorkloadPage } from './pages/Workload';
 import { ReferencePage } from './pages/Reference';
 
 export function AppRoutes() {
@@ -22,6 +25,9 @@ export function AppRoutes() {
         <Route path="deals" element={<DealsPage />} />
         <Route path="deals/:id" element={<DealDetailPage />} />
         <Route path="rfqs/:id" element={<RfqDetailPage />} />
+        <Route path="sites" element={<SitesPage />} />
+        <Route path="sites/:id" element={<SiteDetailPage />} />
+        <Route path="workload" element={<WorkloadPage />} />
         <Route path="audit" element={<AuditPage />} />
         <Route path="reference" element={<ReferencePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
