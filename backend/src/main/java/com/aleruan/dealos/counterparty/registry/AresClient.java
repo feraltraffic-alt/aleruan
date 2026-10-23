@@ -7,6 +7,7 @@ import com.aleruan.dealos.platform.integration.RegistryUnavailableException;
 import com.aleruan.dealos.platform.integration.ResilientCall;
 import com.aleruan.dealos.platform.integration.RetryPolicy;
 import java.time.Clock;
+import java.util.Optional;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -33,13 +34,18 @@ class AresClient implements RegistryClient {
     }
 
     @Override
-    public boolean supports(String country, String companyId, String vatNumber) {
-        return "CZ".equals(country) && TaxIdentifiers.isValidCzIco(companyId);
+    public int order() {
+        return 10;
     }
 
     @Override
-    public RegistrySnapshot lookup(String country, String companyId, String vatNumber) {
-        String ico = TaxIdentifiers.normalize(companyId);
+    public boolean supports(LookupRequest request) {
+        return "CZ".equals(request.country()) && TaxIdentifiers.isValidCzIco(request.companyId());
+    }
+
+    @Override
+    public Optional<RegistrySnapshot> lookup(LookupRequest request) {
+        String ico = TaxIdentifiers.normalize(request.companyId());
         try {
             String raw = ResilientCall.execute("ARES", () -> client.get()
                     .uri("/ekonomicke-subjekty/{ico}", ico)
@@ -47,9 +53,9 @@ class AresClient implements RegistryClient {
                     // 404 carries {"kod":"NENALEZENO"}: read the body instead of throwing
                     .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> { })
                     .body(String.class), RetryPolicy.defaults(), ResilientCall.Sleeper.THREAD);
-            return AresResultMapper.map(http.parse(raw), raw, clock.instant());
+            return Optional.of(AresResultMapper.map(http.parse(raw), raw, clock.instant()));
         } catch (RegistryUnavailableException e) {
-            return RegistrySnapshot.unavailable(CheckSource.ARES, clock.instant(), e.getMessage(), null);
+            return Optional.of(RegistrySnapshot.unavailable(CheckSource.ARES, clock.instant(), e.getMessage(), null));
         }
     }
 }

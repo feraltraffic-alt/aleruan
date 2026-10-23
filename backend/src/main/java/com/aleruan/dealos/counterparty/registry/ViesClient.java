@@ -7,6 +7,7 @@ import com.aleruan.dealos.platform.integration.RegistryUnavailableException;
 import com.aleruan.dealos.platform.integration.ResilientCall;
 import com.aleruan.dealos.platform.integration.RetryPolicy;
 import java.time.Clock;
+import java.util.Optional;
 import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -34,13 +35,14 @@ class ViesClient implements RegistryClient {
     }
 
     @Override
-    public boolean supports(String country, String companyId, String vatNumber) {
-        return vatNumber != null && !vatNumber.isBlank() && TaxIdentifiers.isViesCountry(country);
+    public boolean supports(LookupRequest request) {
+        return request.vatNumber() != null && !request.vatNumber().isBlank()
+                && TaxIdentifiers.isViesCountry(request.country());
     }
 
     @Override
-    public RegistrySnapshot lookup(String country, String companyId, String vatNumber) {
-        TaxIdentifiers.VatId vat = TaxIdentifiers.parseVat(vatNumber);
+    public Optional<RegistrySnapshot> lookup(LookupRequest request) {
+        TaxIdentifiers.VatId vat = TaxIdentifiers.parseVat(request.vatNumber());
         RegistryProperties.Vies cfg = http.properties().vies();
         Map<String, String> body = Map.of(
                 "countryCode", vat.country(),
@@ -54,9 +56,9 @@ class ViesClient implements RegistryClient {
                     .body(body)
                     .retrieve()
                     .body(String.class), RetryPolicy.defaults(), ResilientCall.Sleeper.THREAD);
-            return ViesResultMapper.map(http.parse(raw), raw, clock.instant());
+            return Optional.of(ViesResultMapper.map(http.parse(raw), raw, clock.instant()));
         } catch (RegistryUnavailableException e) {
-            return RegistrySnapshot.unavailable(CheckSource.VIES, clock.instant(), e.getMessage(), null);
+            return Optional.of(RegistrySnapshot.unavailable(CheckSource.VIES, clock.instant(), e.getMessage(), null));
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.aleruan.dealos.counterparty.api;
 
+import com.aleruan.dealos.counterparty.application.AccountCheckService;
 import com.aleruan.dealos.counterparty.application.CounterpartyCheckService;
 import com.aleruan.dealos.counterparty.application.CounterpartyService;
 import com.aleruan.dealos.counterparty.domain.CheckFinding;
@@ -56,11 +57,14 @@ class CounterpartyController {
     }
 
     record CheckResultView(UUID id, CheckSource source, CheckStatus status, List<CheckFinding> findings,
-                           String requestId, String unavailableReason, Instant checkedAt) {
+                           String requestId, String unavailableReason, Instant checkedAt, String checkedAccount) {
         static CheckResultView of(CheckResult r) {
             return new CheckResultView(r.getId(), r.getSource(), r.getStatus(), r.getFindings(),
-                    r.getRequestId(), r.getUnavailableReason(), r.getCheckedAt());
+                    r.getRequestId(), r.getUnavailableReason(), r.getCheckedAt(), r.getCheckedAccount());
         }
+    }
+
+    record AccountCheckRequest(@NotBlank String account) {
     }
 
     record CheckRunView(CheckStatus status, List<CheckFinding> findings, List<CheckResultView> results) {
@@ -75,10 +79,13 @@ class CounterpartyController {
 
     private final CounterpartyService service;
     private final CounterpartyCheckService checks;
+    private final AccountCheckService accountChecks;
 
-    CounterpartyController(CounterpartyService service, CounterpartyCheckService checks) {
+    CounterpartyController(CounterpartyService service, CounterpartyCheckService checks,
+                           AccountCheckService accountChecks) {
         this.service = service;
         this.checks = checks;
+        this.accountChecks = accountChecks;
     }
 
     @GetMapping
@@ -105,6 +112,12 @@ class CounterpartyController {
         CounterpartyCheckService.CheckRun run = checks.check(id);
         return new CheckRunView(run.verdict().status(), run.verdict().findings(),
                 run.results().stream().map(CheckResultView::of).toList());
+    }
+
+    /** Is this the account the tax registry publishes for this counterparty? */
+    @PostMapping("/{id}/account-checks")
+    CheckResultView checkAccount(@PathVariable UUID id, @Valid @RequestBody AccountCheckRequest r) {
+        return CheckResultView.of(accountChecks.check(id, r.account()).result());
     }
 
     @GetMapping("/{id}/checks")

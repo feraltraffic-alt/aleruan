@@ -2,14 +2,22 @@ package com.aleruan.dealos.counterparty.registry;
 
 import com.aleruan.dealos.counterparty.domain.CheckSource;
 import com.aleruan.dealos.counterparty.domain.RegistrySnapshot;
+import java.util.Optional;
 
-/** One public registry. Implementations never throw for "registry down": they return an unavailable snapshot. */
+/**
+ * One public registry. Implementations never throw for "registry down": they return an unavailable snapshot.
+ * An empty result means "nothing to check here" (e.g. KRS for a sole trader who has no KRS number).
+ */
 public interface RegistryClient {
 
     CheckSource source();
 
-    /** True if this registry can check a counterparty from {@code country} with the given identifiers. */
-    boolean supports(String country, String companyId, String vatNumber);
+    /** Registries run in ascending order, so later ones can use earlier snapshots. */
+    default int order() {
+        return 100;
+    }
 
-    RegistrySnapshot lookup(String country, String companyId, String vatNumber);
+    boolean supports(LookupRequest request);
+
+    Optional<RegistrySnapshot> lookup(LookupRequest request);
 }

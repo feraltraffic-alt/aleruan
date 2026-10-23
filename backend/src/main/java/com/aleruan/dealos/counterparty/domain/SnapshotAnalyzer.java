@@ -29,9 +29,18 @@ public final class SnapshotAnalyzer {
         if (Boolean.TRUE.equals(s.unreliableVatPayer())) {
             result.add(CheckFinding.UNRELIABLE_VAT_PAYER);
         }
-        if (s.source() == CheckSource.BIALA_LISTA && s.vatStatus() != null
-                && !"Czynny".equalsIgnoreCase(s.vatStatus())) {
-            result.add(CheckFinding.VAT_NOT_ACTIVE);
+        if (s.source() == CheckSource.BIALA_LISTA && s.vatStatus() != null) {
+            if ("Zwolniony".equalsIgnoreCase(s.vatStatus())) {
+                result.add(CheckFinding.NOT_VAT_PAYER);        // legal, but no VAT on invoices: worth a look
+            } else if (!"Czynny".equalsIgnoreCase(s.vatStatus())) {
+                result.add(CheckFinding.VAT_NOT_ACTIVE);
+            }
+        }
+        if (s.source() == CheckSource.REGISTR_DPH && "NENALEZEN".equalsIgnoreCase(s.vatStatus())) {
+            result.add(CheckFinding.NOT_VAT_PAYER);
+        }
+        if (Boolean.TRUE.equals(s.sanctionsMatch())) {
+            result.add(CheckFinding.SANCTIONS_POSSIBLE_MATCH); // name match only: a person confirms or clears it
         }
         if (Boolean.TRUE.equals(s.insolvency())) {
             result.add(CheckFinding.INSOLVENCY);
@@ -53,9 +62,9 @@ public final class SnapshotAnalyzer {
         if (!s.available()) {
             return EnumSet.of(CheckFinding.SOURCE_UNAVAILABLE);
         }
-        String wanted = TaxIdentifiers.normalizeAccount(account);
+        String wanted = BankAccounts.comparable(account);
         boolean published = s.publishedAccounts().stream()
-                .map(TaxIdentifiers::normalizeAccount)
+                .map(BankAccounts::comparable)
                 .anyMatch(wanted::equals);
         return published ? EnumSet.noneOf(CheckFinding.class) : EnumSet.of(CheckFinding.ACCOUNT_NOT_PUBLISHED);
     }

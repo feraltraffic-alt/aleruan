@@ -48,7 +48,7 @@ class SnapshotAnalyzerTest {
     @Test
     void polishVatStatusMustBeActive() {
         RegistrySnapshot s = RegistrySnapshot.builder(CheckSource.BIALA_LISTA, AT).found(true)
-                .vatStatus("Zwolniony").build();
+                .vatStatus("Wykreślony").build();
         assertEquals(Set.of(CheckFinding.VAT_NOT_ACTIVE), SnapshotAnalyzer.findings(s, TODAY));
     }
 
@@ -74,6 +74,12 @@ class SnapshotAnalyzerTest {
         assertTrue(SnapshotAnalyzer.accountFindings(s, "PL23102010130000020204812139").isEmpty());
         assertEquals(Set.of(CheckFinding.ACCOUNT_NOT_PUBLISHED),
                 SnapshotAnalyzer.accountFindings(s, "PL61109010140000071219812874"));
+    }
+
+    @Test
+    void sanctionsNameMatchIsYellowForManualReview() {
+        RegistrySnapshot s = RegistrySnapshot.builder(CheckSource.SANCTIONS_EU, AT).found(true).sanctionsMatch(true).build();
+        assertEquals(Set.of(CheckFinding.SANCTIONS_POSSIBLE_MATCH), SnapshotAnalyzer.findings(s, TODAY));
     }
 
     @Test

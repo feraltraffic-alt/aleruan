@@ -12,7 +12,10 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 public record RegistryProperties(
         @DefaultValue("5s") Duration timeout,
         @DefaultValue Vies vies,
-        @DefaultValue Ares ares) {
+        @DefaultValue Ares ares,
+        @DefaultValue BialaLista bialaLista,
+        @DefaultValue Krs krs,
+        @DefaultValue RegistrDph registrDph) {
 
     public record Vies(
             @DefaultValue("https://ec.europa.eu/taxation_customs/vies/rest-api") String baseUrl,
@@ -22,5 +25,17 @@ public record RegistryProperties(
 
     public record Ares(
             @DefaultValue("https://ares.gov.cz/ekonomicke-subjekty-v-be/rest") String baseUrl) {
+    }
+
+    public record BialaLista(
+            @DefaultValue("https://wl-api.mf.gov.pl/api") String baseUrl) {
+    }
+
+    public record Krs(
+            @DefaultValue("https://api-krs.ms.gov.pl/api/krs") String baseUrl) {
+    }
+
+    public record RegistrDph(
+            @DefaultValue("https://adisrws.mfcr.cz/adistc/axis2/services/rozhraniCRPDPH.rozhraniCRPDPHSOAP") String url) {
     }
 }

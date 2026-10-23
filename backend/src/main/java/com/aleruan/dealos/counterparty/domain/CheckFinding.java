@@ -10,6 +10,8 @@ public enum CheckFinding {
     LIQUIDATION_OR_CEASED(CheckStatus.RED),
     SANCTIONS_HIT(CheckStatus.RED),
     YOUNG_COMPANY(CheckStatus.YELLOW),
+    NOT_VAT_PAYER(CheckStatus.YELLOW),
+    SANCTIONS_POSSIBLE_MATCH(CheckStatus.YELLOW),
     ACCOUNT_NOT_PUBLISHED(CheckStatus.YELLOW),
     SOURCE_UNAVAILABLE(CheckStatus.YELLOW),
     MANUAL_REVIEW_REQUIRED(CheckStatus.YELLOW);

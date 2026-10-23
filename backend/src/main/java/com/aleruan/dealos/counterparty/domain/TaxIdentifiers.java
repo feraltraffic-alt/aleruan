@@ -31,11 +31,6 @@ public final class TaxIdentifiers {
         return raw.toUpperCase(Locale.ROOT).replaceAll("[\\s.\\-/]", "");
     }
 
-    /** Bank account / IBAN in comparable form. */
-    public static String normalizeAccount(String raw) {
-        return raw == null ? "" : raw.toUpperCase(Locale.ROOT).replaceAll("[\\s\\-]", "");
-    }
-
     /** "CZ 142 20 997" → (CZ, 14220997). Greece "GR" is mapped to VIES "EL". */
     public static VatId parseVat(String raw) {
         String v = normalize(raw);

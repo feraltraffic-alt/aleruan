@@ -11,7 +11,13 @@ import com.aleruan.dealos.counterparty.domain.CheckStatus;
 import com.aleruan.dealos.counterparty.domain.Counterparty;
 import com.aleruan.dealos.counterparty.domain.CounterpartyRole;
 import com.aleruan.dealos.counterparty.domain.RegistrySnapshot;
+import com.aleruan.dealos.counterparty.application.AccountCheckService;
+import com.aleruan.dealos.counterparty.domain.CheckFinding;
+import com.aleruan.dealos.counterparty.registry.LookupRequest;
 import com.aleruan.dealos.counterparty.registry.RegistryClient;
+import com.aleruan.dealos.counterparty.sanctions.SanctionsService;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import com.aleruan.dealos.platform.audit.AuditService;
 import com.aleruan.dealos.platform.web.ConflictException;
 import java.time.Instant;
@@ -46,11 +52,11 @@ class AuditAndCounterpartyIntegrationTest {
         RegistryClient stubAres() {
             return new RegistryClient() {
                 public CheckSource source() { return CheckSource.ARES; }
-                public boolean supports(String country, String companyId, String vat) { return "CZ".equals(country); }
-                public RegistrySnapshot lookup(String country, String companyId, String vat) {
-                    return RegistrySnapshot.builder(CheckSource.ARES, Instant.now()).found(true)
+                public boolean supports(LookupRequest r) { return "CZ".equals(r.country()); }
+                public Optional<RegistrySnapshot> lookup(LookupRequest r) {
+                    return Optional.of(RegistrySnapshot.builder(CheckSource.ARES, Instant.now()).found(true)
                             .legalName("Stub s.r.o.").registeredOn(LocalDate.parse("2020-01-01"))
-                            .insolvency(false).rawResponse("{}").build();
+                            .insolvency(false).rawResponse("{}").build());
                 }
             };
         }
@@ -59,6 +65,8 @@ class AuditAndCounterpartyIntegrationTest {
     @Autowired CounterpartyService counterparties;
     @Autowired CounterpartyCheckService checks;
     @Autowired AuditService audit;
+    @Autowired SanctionsService sanctions;
+    @Autowired AccountCheckService accountChecks;
     @Autowired JdbcTemplate jdbc;
 
     @Test
@@ -86,5 +94,34 @@ class AuditAndCounterpartyIntegrationTest {
         assertThrows(Exception.class, () -> jdbc.update("update audit_event set actor = 'mallory'"));
         assertThrows(Exception.class, () -> jdbc.update("delete from audit_event"));
         assertTrue(audit.verifyChain().valid());
+    }
+
+    @Test
+    void sanctionsImportFlagsANameMatchForManualReview() throws Exception {
+        String xml = """
+                <export xmlns="http://eu.europa.ec/fpi/fsd/export">
+                  <sanctionEntity logicalId="999"><subjectType code="enterprise"/>
+                    <nameAlias wholeName="Fiktivni Sankce s.r.o."/></sanctionEntity>
+                </export>""";
+        assertTrue(sanctions.importFile(xml.getBytes(StandardCharsets.UTF_8)).isPresent());
+        assertTrue(sanctions.importFile(xml.getBytes(StandardCharsets.UTF_8)).isEmpty()); // same file: skipped
+
+        Counterparty c = counterparties.create(new CounterpartyService.NewCounterparty(
+                "FIKTIVNI SANKCE, s.r.o.", "MD", "1003600000001", null, null, null, null,
+                Set.of(CounterpartyRole.SUBCONTRACTOR)));
+        CounterpartyCheckService.CheckRun run = checks.check(c.getId());
+        assertTrue(run.verdict().findings().contains(CheckFinding.SANCTIONS_POSSIBLE_MATCH));
+        assertTrue(run.verdict().findings().contains(CheckFinding.MANUAL_REVIEW_REQUIRED)); // no registry for MD
+        assertEquals(CheckStatus.YELLOW, run.verdict().status());
+    }
+
+    @Test
+    void accountCheckWithoutRegistryAsksForManualReview() {
+        Counterparty c = counterparties.create(new CounterpartyService.NewCounterparty(
+                "Softline Dev S.R.L.", "MD", "1009600012345", null, null, null, null,
+                Set.of(CounterpartyRole.SUBCONTRACTOR)));
+        AccountCheckService.AccountCheck check = accountChecks.check(c.getId(), "MD24 AG00 0225 1000 1310 4168");
+        assertEquals(CheckStatus.YELLOW, check.verdict().status());
+        assertEquals("MD24AG000225100013104168", check.result().getCheckedAccount());
     }
 }

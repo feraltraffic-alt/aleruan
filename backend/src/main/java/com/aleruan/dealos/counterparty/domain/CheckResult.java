@@ -47,6 +47,10 @@ public class CheckResult {
     @Column(name = "checked_at", nullable = false)
     private Instant checkedAt;
 
+    /** Set for bank-account checks: the account that was verified. */
+    @Column(name = "checked_account")
+    private String checkedAccount;
+
     protected CheckResult() {
     }
 
@@ -62,6 +66,12 @@ public class CheckResult {
         this.checkedAt = snapshot.retrievedAt();
     }
 
+    public CheckResult(UUID counterpartyId, RegistrySnapshot snapshot, Collection<CheckFinding> findings,
+                       String checkedAccount) {
+        this(counterpartyId, snapshot, findings);
+        this.checkedAccount = checkedAccount;
+    }
+
     public UUID getId() { return id; }
     public UUID getCounterpartyId() { return counterpartyId; }
     public CheckSource getSource() { return source; }
@@ -70,6 +80,7 @@ public class CheckResult {
     public String getUnavailableReason() { return unavailableReason; }
     public String getRawResponse() { return rawResponse; }
     public Instant getCheckedAt() { return checkedAt; }
+    public String getCheckedAccount() { return checkedAccount; }
 
     public List<CheckFinding> getFindings() {
         if (findings == null || findings.isBlank()) {

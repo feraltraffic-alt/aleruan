@@ -18,12 +18,14 @@ public record RegistrySnapshot(
         String legalName,
         String address,
         String vatNumber,
+        String krsNumber,
         LocalDate registeredOn,
         LocalDate ceasedOn,
         Boolean vatValid,
         Boolean unreliableVatPayer,
         String vatStatus,
         Boolean insolvency,
+        Boolean sanctionsMatch,
         List<String> publishedAccounts,
         String rawResponse) {
 
@@ -49,12 +51,14 @@ public record RegistrySnapshot(
         private String legalName;
         private String address;
         private String vatNumber;
+        private String krsNumber;
         private LocalDate registeredOn;
         private LocalDate ceasedOn;
         private Boolean vatValid;
         private Boolean unreliableVatPayer;
         private String vatStatus;
         private Boolean insolvency;
+        private Boolean sanctionsMatch;
         private List<String> publishedAccounts;
         private String rawResponse;
 
@@ -70,6 +74,8 @@ public record RegistrySnapshot(
         public Builder legalName(String v) { this.legalName = v; return this; }
         public Builder address(String v) { this.address = v; return this; }
         public Builder vatNumber(String v) { this.vatNumber = v; return this; }
+        public Builder krsNumber(String v) { this.krsNumber = v; return this; }
+        public Builder sanctionsMatch(Boolean v) { this.sanctionsMatch = v; return this; }
         public Builder registeredOn(LocalDate v) { this.registeredOn = v; return this; }
         public Builder ceasedOn(LocalDate v) { this.ceasedOn = v; return this; }
         public Builder vatValid(Boolean v) { this.vatValid = v; return this; }
@@ -81,8 +87,8 @@ public record RegistrySnapshot(
 
         public RegistrySnapshot build() {
             return new RegistrySnapshot(source, retrievedAt, available, unavailableReason, found, requestId,
-                    legalName, address, vatNumber, registeredOn, ceasedOn, vatValid, unreliableVatPayer,
-                    vatStatus, insolvency, publishedAccounts, rawResponse);
+                    legalName, address, vatNumber, krsNumber, registeredOn, ceasedOn, vatValid, unreliableVatPayer,
+                    vatStatus, insolvency, sanctionsMatch, publishedAccounts, rawResponse);
         }
     }
 }
