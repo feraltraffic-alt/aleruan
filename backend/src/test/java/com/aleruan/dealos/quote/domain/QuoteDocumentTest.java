@@ -31,7 +31,7 @@ class QuoteDocumentTest {
                         "ul. Długa 5, Kraków", null, null, null),
                 "Rekonstrukce kanceláří", "PL", "EUR", LINES, mode, rate, a.subtotal(), a.vatAmount(), a.total(),
                 QuoteTexts.vatNote(lang, mode, VatAdvisor.Reason.SITE_IN_OTHER_EU_STATE), "Záloha 30 %\npřed zahájením",
-                new QuoteDocument.Bank("PKO Bank Polski", "PL23102010130000020204812139", "BPKOPLPW"));
+                new QuoteDocument.Bank("PKO Bank Polski", "PL23102010130000020204812139", "BPKOPLPW"), null);
     }
 
     @Test
@@ -69,6 +69,29 @@ class QuoteDocumentTest {
         assertTrue(en.contains("23 Oct 2026"));
         String de = QuoteHtml.render(document(QuoteLanguage.DE, VatMode.STANDARD, new BigDecimal("21"), "PL"), null, null);
         assertTrue(de.contains("24.931,69 EUR"));
+    }
+
+    @Test
+    void changeOrderSheetHasReasonScheduleImpactAndSignatureBlock() throws Exception {
+        QuoteDocument q = document(QuoteLanguage.CS, VatMode.STANDARD, new BigDecimal("21"), "PL");
+        QuoteDocument co = new QuoteDocument("D-2026-0003-C1", 1, q.language(), q.issuedOn(), q.validUntil(), q.issuedBy(),
+                q.supplier(), q.customer(), q.subject(), q.siteCountry(), q.currency(), q.lines(), q.vatMode(), q.vatRate(),
+                q.subtotal(), q.vatAmount(), q.total(), q.vatNote(), null, q.bank(),
+                new QuoteDocument.ChangeOrder("Zákazník požaduje\nvyšší kvalitu omítky", 5));
+        String html = QuoteHtml.render(co, null, null);
+        assertNotNull(DocumentBuilderFactory.newInstance().newDocumentBuilder()
+                .parse(new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8))));
+        assertTrue(html.contains("Změnový list"));
+        assertFalse(html.contains("Cenová nabídka"));
+        assertTrue(html.contains("Zákazník požaduje<br/>vyšší kvalitu omítky"));
+        assertTrue(html.contains("+5 kalendářních dní"));
+        assertTrue(html.contains("Odsouhlasení objednatelem"));
+        assertTrue(html.contains(">Podpis<"));
+        assertFalse(QuoteHtml.render(q, null, null).contains("Odsouhlasení objednatelem"));
+        String none = QuoteHtml.render(new QuoteDocument("X", 1, QuoteLanguage.EN, q.issuedOn(), q.validUntil(), null,
+                q.supplier(), q.customer(), "s", null, "EUR", q.lines(), q.vatMode(), q.vatRate(), q.subtotal(),
+                q.vatAmount(), q.total(), null, null, null, new QuoteDocument.ChangeOrder(null, 0)), null, null);
+        assertTrue(none.contains("no change"));
     }
 
     @Test

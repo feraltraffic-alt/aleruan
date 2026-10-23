@@ -22,10 +22,11 @@ public final class QuoteHtml {
      */
     public static String render(QuoteDocument d, String logoSrc, String fontFamily) {
         QuoteLanguage lang = d.language();
+        String title = l(lang, d.isChangeOrder() ? Key.CO_TITLE : Key.TITLE);
         StringBuilder h = new StringBuilder(8_000);
         h.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE html>\n")
                 .append("<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"").append(lang.name().toLowerCase()).append("\">")
-                .append("<head><meta charset=\"UTF-8\"/><title>").append(esc(l(lang, Key.TITLE) + " " + d.displayNumber()))
+                .append("<head><meta charset=\"UTF-8\"/><title>").append(esc(title + " " + d.displayNumber()))
                 .append("</title><style>").append(css(d, fontFamily)).append("</style></head><body>");
 
         // header: logo, title, number and dates
@@ -35,7 +36,7 @@ public final class QuoteHtml {
         } else {
             h.append("<div class=\"wordmark\">").append(esc(d.supplier().name())).append("</div>");
         }
-        h.append("</td><td class=\"doc\"><div class=\"title\">").append(esc(l(lang, Key.TITLE))).append("</div>")
+        h.append("</td><td class=\"doc\"><div class=\"title\">").append(esc(title)).append("</div>")
                 .append("<div class=\"no\">").append(esc(d.displayNumber())).append("</div>")
                 .append("<table class=\"dates\">")
                 .append(row(l(lang, Key.ISSUED), date(d, d.issuedOn())))
@@ -54,6 +55,17 @@ public final class QuoteHtml {
                 .append(esc(d.subject())).append("</td></tr>");
         if (d.siteCountry() != null) {
             h.append("<tr><td class=\"k\">").append(esc(l(lang, Key.SITE))).append("</td><td>").append(esc(d.siteCountry()))
+                    .append("</td></tr>");
+        }
+        if (d.isChangeOrder()) {
+            if (d.changeOrder().reason() != null) {
+                h.append("<tr><td class=\"k\">").append(esc(l(lang, Key.CO_REASON))).append("</td><td>")
+                        .append(esc(d.changeOrder().reason()).replace("\n", "<br/>")).append("</td></tr>");
+            }
+            int days = d.changeOrder().extraDays();
+            h.append("<tr><td class=\"k\">").append(esc(l(lang, Key.CO_DAYS))).append("</td><td>")
+                    .append(esc(days == 0 ? l(lang, Key.CO_NO_CHANGE)
+                            : (days > 0 ? "+" : "") + l(lang, Key.CO_DAYS_VALUE).replace("{n}", String.valueOf(days))))
                     .append("</td></tr>");
         }
         h.append("</table>");
@@ -109,6 +121,13 @@ public final class QuoteHtml {
             h.append("<h2>").append(esc(l(lang, Key.ISSUED_BY))).append("</h2><p>").append(esc(d.issuedBy())).append("</p>");
         }
         h.append("</td></tr></table>");
+        if (d.isChangeOrder()) {
+            h.append("<div class=\"approval\"><h2>").append(esc(l(lang, Key.CO_APPROVAL))).append("</h2><table class=\"signs\"><tr>")
+                    .append("<td>").append(esc(l(lang, Key.SIGN_NAME))).append("</td>")
+                    .append("<td>").append(esc(l(lang, Key.SIGN_DATE))).append("</td>")
+                    .append("<td>").append(esc(l(lang, Key.SIGN_SIGNATURE))).append("</td>")
+                    .append("</tr></table></div>");
+        }
         return h.append("</body></html>").toString();
     }
 
@@ -159,6 +178,10 @@ public final class QuoteHtml {
             .foot td { width: 50%%; }
             .foot p { margin: 0; }
             .foot td.sign { padding-left: 8mm; }
+            .approval { margin-top: 10mm; page-break-inside: avoid; }
+            .signs td { width: 33%%; padding: 14mm 6mm 1.5mm 0; border-bottom: 0.6pt solid #1e1b24; color: #645e6e;
+              font-size: 8pt; vertical-align: bottom; }
+            .signs td + td { padding-left: 6mm; }
             """.formatted(footer, family, cssText(l(d.language(), Key.PAGE)), family, family);
     }
 

@@ -85,6 +85,15 @@ class QuoteController {
                 .body(q.getPdf());
     }
 
+    @GetMapping("/change-orders/{id}/pdf")
+    ResponseEntity<byte[]> changeOrderPdf(@PathVariable UUID id,
+                                          @org.springframework.web.bind.annotation.RequestParam(required = false) QuoteLanguage language) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline().filename("change-order.pdf").build().toString())
+                .body(service.changeOrderPdf(id, language));
+    }
+
     @GetMapping(value = "/quotes/{id}/html", produces = MediaType.TEXT_HTML_VALUE + ";charset=UTF-8")
     String html(@PathVariable UUID id) {
         return service.html(id);

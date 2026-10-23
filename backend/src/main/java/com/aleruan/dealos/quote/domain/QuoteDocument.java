@@ -29,7 +29,16 @@ public record QuoteDocument(
         BigDecimal total,
         String vatNote,
         String terms,
-        Bank bank) {
+        Bank bank,
+        ChangeOrder changeOrder) {
+
+    /** Present when the document is a change order sheet rather than a quote. */
+    public record ChangeOrder(String reason, int extraDays) {
+    }
+
+    public boolean isChangeOrder() {
+        return changeOrder != null;
+    }
 
     public record Party(String name, String country, String companyId, String vatNumber, String address,
                         String email, String phone, String web) {

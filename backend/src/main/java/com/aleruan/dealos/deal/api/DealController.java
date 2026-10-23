@@ -2,6 +2,7 @@ package com.aleruan.dealos.deal.api;
 
 import com.aleruan.dealos.counterparty.CounterpartyLookup;
 import com.aleruan.dealos.counterparty.CounterpartySummary;
+import com.aleruan.dealos.deal.application.ChangeOrderService;
 import com.aleruan.dealos.deal.application.DealService;
 import com.aleruan.dealos.deal.domain.Deal;
 import com.aleruan.dealos.deal.domain.DealLine;
@@ -77,7 +78,8 @@ class DealController {
     record DealView(UUID id, String number, String title, DealStatus status, Set<DealStatus> nextStatuses,
                     Direction direction, String siteCountry, String currency, BigDecimal defaultMarkupPct,
                     boolean pricesEditable, PartyView customer, String manager, String notes, Instant createdAt,
-                    List<LineView> lines, DealPricing.Totals totals, List<String> warnings) {
+                    List<LineView> lines, DealPricing.Totals totals, List<String> warnings,
+                    ChangeOrderService.Contract contract) {
     }
 
     record DealListItem(UUID id, String number, String title, DealStatus status, Direction direction,
@@ -88,12 +90,14 @@ class DealController {
     }
 
     private final DealService service;
+    private final ChangeOrderService changeOrders;
     private final CounterpartyLookup counterparties;
     private final BigDecimal marginWarningPct;
 
-    DealController(DealService service, CounterpartyLookup counterparties,
+    DealController(DealService service, ChangeOrderService changeOrders, CounterpartyLookup counterparties,
                    @Value("${dealos.deals.margin-warning-pct:}") BigDecimal marginWarningPct) {
         this.service = service;
+        this.changeOrders = changeOrders;
         this.counterparties = counterparties;
         this.marginWarningPct = marginWarningPct;
     }
@@ -175,13 +179,15 @@ class DealController {
                     p.costTotal(), p.priceTotal(), p.margin(), PartyView.of(sub)));
         }
         DealPricing.Totals totals = d.totals();
-        if (marginWarningPct != null && totals.marginPct() != null && totals.marginPct().compareTo(marginWarningPct) < 0) {
+        ChangeOrderService.Contract contract = changeOrders.contract(d);
+        DealPricing.Totals agreed = contract.total();
+        if (marginWarningPct != null && agreed.marginPct() != null && agreed.marginPct().compareTo(marginWarningPct) < 0) {
             warnings.add("MARGIN_BELOW_THRESHOLD");
         }
         return new DealView(d.getId(), d.getNumber(), d.getTitle(), d.getStatus(), d.getStatus().next(),
                 d.getDirection(), d.getSiteCountry(), d.getCurrency(), d.getDefaultMarkupPct(),
                 d.getStatus().allowsPriceChanges(), PartyView.of(customer), d.getManager(), d.getNotes(),
-                d.getCreatedAt(), lines, totals, warnings);
+                d.getCreatedAt(), lines, totals, warnings, contract);
     }
 
     private CounterpartySummary party(UUID id, Map<UUID, CounterpartySummary> cache) {

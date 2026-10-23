@@ -8,7 +8,8 @@ public final class QuoteTexts {
 
     public enum Key {
         TITLE, NUMBER, ISSUED, VALID_UNTIL, SUPPLIER, CUSTOMER, COMPANY_ID, VAT_ID, SUBJECT, SITE, POS, DESCRIPTION,
-        QUANTITY, UNIT, UNIT_PRICE, LINE_TOTAL, SUBTOTAL, VAT, NO_VAT, TOTAL, BANK, TERMS, ISSUED_BY, PRICES_IN, PAGE
+        QUANTITY, UNIT, UNIT_PRICE, LINE_TOTAL, SUBTOTAL, VAT, NO_VAT, TOTAL, BANK, TERMS, ISSUED_BY, PRICES_IN, PAGE,
+        CO_TITLE, CO_REASON, CO_DAYS, CO_DAYS_VALUE, CO_APPROVAL, SIGN_NAME, SIGN_DATE, SIGN_SIGNATURE, CO_NO_CHANGE
     }
 
     private static final Map<QuoteLanguage, Map<Key, String>> LABELS = new EnumMap<>(QuoteLanguage.class);
@@ -17,19 +18,27 @@ public final class QuoteTexts {
         put(QuoteLanguage.CS, "Cenová nabídka", "Číslo", "Datum", "Platnost do", "Dodavatel", "Zákazník", "IČO", "DIČ",
                 "Předmět", "Místo realizace", "#", "Popis", "Množství", "MJ", "Cena za MJ", "Celkem", "Celkem bez DPH",
                 "DPH {rate} %", "DPH", "Cena celkem", "Bankovní spojení", "Podmínky", "Vystavil",
-                "Ceny jsou uvedeny v {cur}.", "Strana");
+                "Ceny jsou uvedeny v {cur}.", "Strana",
+                "Změnový list", "Důvod změny", "Vliv na termín", "{n} kalendářních dní", "Odsouhlasení objednatelem",
+                "Jméno a funkce", "Datum", "Podpis", "beze změny");
         put(QuoteLanguage.EN, "Commercial offer", "Number", "Date", "Valid until", "Supplier", "Customer", "Reg. No.",
                 "VAT ID", "Subject", "Site", "#", "Description", "Qty", "Unit", "Unit price", "Total", "Total excl. VAT",
                 "VAT {rate} %", "VAT", "Total price", "Bank details", "Terms", "Issued by",
-                "Prices are in {cur}.", "Page");
+                "Prices are in {cur}.", "Page",
+                "Change order", "Reason for the change", "Schedule impact", "{n} calendar days", "Customer approval",
+                "Name and position", "Date", "Signature", "no change");
         put(QuoteLanguage.PL, "Oferta handlowa", "Numer", "Data", "Ważna do", "Dostawca", "Klient", "Nr rejestrowy",
                 "NIP UE", "Przedmiot", "Miejsce realizacji", "Lp.", "Opis", "Ilość", "J.m.", "Cena jedn.", "Wartość",
                 "Razem netto", "VAT {rate} %", "VAT", "Cena łączna", "Dane do przelewu", "Warunki", "Wystawił",
-                "Ceny podano w {cur}.", "Strona");
+                "Ceny podano w {cur}.", "Strona",
+                "Zlecenie zmiany", "Powód zmiany", "Wpływ na termin", "{n} dni kalendarzowych", "Akceptacja zamawiającego",
+                "Imię, nazwisko i stanowisko", "Data", "Podpis", "bez zmian");
         put(QuoteLanguage.DE, "Angebot", "Nummer", "Datum", "Gültig bis", "Anbieter", "Kunde", "Reg.-Nr.", "USt-IdNr.",
                 "Gegenstand", "Ausführungsort", "Pos.", "Beschreibung", "Menge", "Einheit", "Einzelpreis", "Gesamt",
                 "Summe netto", "USt. {rate} %", "USt.", "Gesamtpreis", "Bankverbindung", "Bedingungen", "Erstellt von",
-                "Preise in {cur}.", "Seite");
+                "Preise in {cur}.", "Seite",
+                "Nachtragsangebot", "Grund der Änderung", "Auswirkung auf den Termin", "{n} Kalendertage",
+                "Freigabe durch den Auftraggeber", "Name und Funktion", "Datum", "Unterschrift", "keine");
     }
 
     private static void put(QuoteLanguage lang, String... values) {

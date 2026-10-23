@@ -3,6 +3,7 @@ package com.aleruan.dealos.deal.application;
 import com.aleruan.dealos.counterparty.CounterpartyLookup;
 import com.aleruan.dealos.counterparty.CounterpartySummary;
 import com.aleruan.dealos.deal.DealCatalog;
+import com.aleruan.dealos.deal.domain.ChangeOrderRepository;
 import com.aleruan.dealos.deal.domain.Deal;
 import com.aleruan.dealos.deal.domain.DealLine;
 import com.aleruan.dealos.deal.domain.DealRepository;
@@ -38,14 +39,16 @@ public class DealService implements DealCatalog {
     }
 
     private final DealRepository deals;
+    private final ChangeOrderRepository changeOrders;
     private final CounterpartyLookup counterparties;
     private final AuditService audit;
     private final CurrentActor actor;
     private final Clock clock;
 
-    DealService(DealRepository deals, CounterpartyLookup counterparties, AuditService audit, CurrentActor actor,
-                Clock clock) {
+    DealService(DealRepository deals, ChangeOrderRepository changeOrders, CounterpartyLookup counterparties,
+                AuditService audit, CurrentActor actor, Clock clock) {
         this.deals = deals;
+        this.changeOrders = changeOrders;
         this.counterparties = counterparties;
         this.audit = audit;
         this.actor = actor;
@@ -135,6 +138,29 @@ public class DealService implements DealCatalog {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<ChangeOrderSummary> changeOrder(UUID changeOrderId) {
+        return changeOrders.findById(changeOrderId).map(co -> {
+            Deal deal = get(co.getDealId());
+            List<CustomerLine> lines = co.getLines().stream().map(l -> {
+                DealPricing.PricedLine p = DealPricing.price(l.pricingInput(), deal.getDefaultMarkupPct());
+                return new CustomerLine(l.getPosition(), l.getKind().name(), l.getDescription(), l.getWorkType(),
+                        l.getUnit(), l.getQuantity(), p.unitPrice(), p.priceTotal());
+            }).toList();
+            return new ChangeOrderSummary(co.getId(), deal.getId(), co.number(deal.getNumber()), co.getSeq(),
+                    co.getTitle(), co.getReason(), co.getStatus().name(), co.getExtraDays(), lines,
+                    co.totals(deal.getDefaultMarkupPct()).price());
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal contractValue(UUID dealId) {
+        Deal deal = get(dealId);
+        return ChangeOrderService.contractOf(deal, changeOrders.findByDealIdOrderBySeq(dealId)).total().price();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<CustomerLine> customerLines(UUID dealId) {
         Deal deal = get(dealId);
         return deal.getLines().stream().map(l -> {
@@ -177,7 +203,8 @@ public class DealService implements DealCatalog {
                 "subcontractorId", subcontractorId, "reason", reason));
     }
 
-    private void requireSupplier(UUID counterpartyId) {
+    /** Line suppliers must be subcontractors, suppliers or carriers. */
+    void requireSupplier(UUID counterpartyId) {
         if (counterpartyId == null) {
             return;
         }

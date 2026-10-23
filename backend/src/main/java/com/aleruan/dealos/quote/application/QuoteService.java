@@ -134,9 +134,7 @@ public class QuoteService {
                 deal.number().replaceFirst("^D-", "Q-"), version, language, today, today.plusDays(validDays),
                 actor.name(), supplier(), party(customer), deal.title(), deal.siteCountry(), deal.currency(),
                 docLines, mode, rate, amounts.subtotal(), amounts.vatAmount(), amounts.total(),
-                QuoteTexts.vatNote(language, mode, reason), blankToNull(request.terms()),
-                company.iban() == null || company.iban().isBlank() ? null
-                        : new QuoteDocument.Bank(blankToNull(company.bankName()), company.iban(), blankToNull(company.swift())));
+                QuoteTexts.vatNote(language, mode, reason), blankToNull(request.terms()), bank(), null);
 
         byte[] pdf = renderer.render(document);
         String sha = sha256(pdf);
@@ -152,6 +150,31 @@ public class QuoteService {
         payload.put("pdfSha256", sha);
         audit.record(AUDIT_TYPE, quote.getId().toString(), "ISSUED", payload);
         return quote;
+    }
+
+    /**
+     * The change order sheet the customer signs, rendered on demand in the customer's language with the
+     * deal's VAT treatment. Not stored: the approval itself is recorded on the change order.
+     */
+    @Transactional(readOnly = true)
+    public byte[] changeOrderPdf(UUID changeOrderId, QuoteLanguage requested) {
+        DealCatalog.ChangeOrderSummary co = deals.changeOrder(changeOrderId)
+                .orElseThrow(() -> new NotFoundException("Change order " + changeOrderId + " not found"));
+        DealSummary deal = deal(co.dealId());
+        CounterpartySummary customer = customer(deal);
+        VatAdvisor.Suggestion vat = suggestion(deal, customer);
+        QuoteLanguage language = requested != null ? requested : QuoteLanguage.forCountry(customer.country());
+        List<QuoteDocument.Line> lines = co.lines().stream()
+                .map(l -> new QuoteDocument.Line(l.position(), l.description(), l.unit(), l.quantity(), l.unitPrice(), l.total()))
+                .toList();
+        QuoteDocument.Amounts amounts = QuoteDocument.amounts(lines, vat.mode(), vat.rate());
+        LocalDate today = LocalDate.now(clock.withZone(PRAGUE));
+        QuoteDocument document = new QuoteDocument(co.number(), 1, language, today, today.plusDays(defaultValidDays),
+                actor.name(), supplier(), party(customer), co.title() + " (" + deal.title() + ")", deal.siteCountry(),
+                deal.currency(), lines, vat.mode(), vat.rate(), amounts.subtotal(), amounts.vatAmount(), amounts.total(),
+                QuoteTexts.vatNote(language, vat.mode(), vat.reason()), null, bank(),
+                new QuoteDocument.ChangeOrder(co.reason(), co.extraDays()));
+        return renderer.render(document);
     }
 
     /** Browser preview of an issued quote, rendered from the stored document. */
@@ -182,6 +205,11 @@ public class QuoteService {
         return new QuoteDocument.Party(company.name(), company.country(), blankToNull(company.companyId()),
                 blankToNull(company.vatNumber()), blankToNull(company.address()), blankToNull(company.email()),
                 blankToNull(company.phone()), blankToNull(company.web()));
+    }
+
+    private QuoteDocument.Bank bank() {
+        return company.iban() == null || company.iban().isBlank() ? null
+                : new QuoteDocument.Bank(blankToNull(company.bankName()), company.iban(), blankToNull(company.swift()));
     }
 
     private static QuoteDocument.Party party(CounterpartySummary c) {

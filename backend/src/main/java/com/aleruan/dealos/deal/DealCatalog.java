@@ -21,7 +21,17 @@ public interface DealCatalog {
                        BigDecimal quantity, BigDecimal unitCost, UUID subcontractorId) {
     }
 
+    /** A change order as the customer sees it: prices only. */
+    record ChangeOrderSummary(UUID id, UUID dealId, String number, int seq, String title, String reason, String status,
+                              int extraDays, List<CustomerLine> lines, BigDecimal total) {
+    }
+
     Optional<DealSummary> find(UUID dealId);
+
+    Optional<ChangeOrderSummary> changeOrder(UUID changeOrderId);
+
+    /** Agreed value for the customer: the deal's lines plus approved change orders. */
+    BigDecimal contractValue(UUID dealId);
 
     List<LineSummary> lines(UUID dealId);
 
