@@ -221,8 +221,12 @@ class EvidenceIntegrationTest extends IntegrationTestBase {
         return files;
     }
 
-    private static String sha256(byte[] data) throws Exception {
-        return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
+    private static String sha256(byte[] data) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private static String pdfText(byte[] pdf) throws Exception {

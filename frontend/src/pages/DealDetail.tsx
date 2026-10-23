@@ -15,6 +15,7 @@ import { LineForm } from './LineForm';
 import { QuotesSection } from './Quotes';
 import { DealSite } from '../components/DealSite';
 import { DealInvoicing } from '../components/DealInvoicing';
+import { DealEvidence } from '../components/DealEvidence';
 import { ChangeOrdersSection } from './ChangeOrders';
 
 /** Moves that end the deal ask for a second click. */
@@ -244,6 +245,8 @@ export function DealDetailPage() {
           </div>
         )}
       </section>
+
+      {can('evidence.read') && <DealEvidence deal={d} />}
 
       {editing && (
         <LineForm pricing={d} line={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)}

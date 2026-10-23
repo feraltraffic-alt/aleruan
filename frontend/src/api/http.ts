@@ -44,6 +44,31 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
+async function problem(res: Response): Promise<string> {
+  try {
+    const b = await res.json();
+    return b.detail ?? b.title ?? res.statusText;
+  } catch {
+    return res.statusText;
+  }
+}
+
+async function upload<T>(path: string, file: Blob, fileName: string): Promise<T> {
+  const form = new FormData();
+  form.append('file', file, fileName);
+  const res = await fetch(`/api${path}`, { method: 'POST', body: form, headers: await authHeaders() });
+  if (res.status === 403) throw new ApiError(403, FORBIDDEN);
+  if (!res.ok) throw new ApiError(res.status, await problem(res));
+  return res.json();
+}
+
+async function blob(path: string): Promise<Blob> {
+  const res = await fetch(`/api${path}`, { headers: await authHeaders() });
+  if (res.status === 403) throw new ApiError(403, FORBIDDEN);
+  if (!res.ok) throw new ApiError(res.status, res.statusText);
+  return res.blob();
+}
+
 const qs = (params: Record<string, string | undefined>) => {
   const p = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => v && p.set(k, v));
@@ -179,6 +204,21 @@ export const httpApi: Api = {
     const res = await fetch(`/api/invoices/${id}/pdf`, { headers: await authHeaders() });
     if (!res.ok) throw new ApiError(res.status, res.statusText);
     return res.blob();
+  },
+
+  dealDocuments: (dealId) => request(`/deals/${dealId}/documents`),
+  uploadDealDocument: (dealId, file, fileName) => upload(`/deals/${dealId}/documents`, file, fileName),
+  removeDealDocument: (dealId, fileId) => request(`/deals/${dealId}/documents/${fileId}`, json('DELETE')),
+  dealDocumentBlob: (dealId, fileId) => blob(`/deals/${dealId}/documents/${fileId}`),
+  evidence: (dealId) => request(`/deals/${dealId}/evidence`),
+  exportEvidence: async (dealId) => {
+    const res = await fetch(`/api/deals/${dealId}/evidence/export`, { method: 'POST', headers: await authHeaders() });
+    if (res.status === 403) throw new ApiError(403, FORBIDDEN);
+    if (!res.ok) throw new ApiError(res.status, await problem(res));
+    const disposition = res.headers.get('Content-Disposition') ?? '';
+    const name = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1] ?? /filename="?([^";]+)"?/i.exec(disposition)?.[1];
+    return { blob: await res.blob(), fileName: name ? decodeURIComponent(name) : `evidence-${dealId}.zip`,
+      sha256sums: res.headers.get('X-Evidence-Sha256sums') };
   },
 
   openOffer: (token) => request(`/public/rfq/${token}`),

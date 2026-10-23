@@ -234,6 +234,24 @@ export interface Site {
 
 export interface FileRef { id: string; fileName: string; contentType: string; sizeBytes: number; uploadedAt: string; uploadedBy: string | null }
 export type PhotoOwner = 'diary' | 'defects';
+export interface DealDocument extends FileRef { sha256: string }
+
+export type EvidenceSection = 'CONTRACT' | 'QUOTES' | 'CHANGE_ORDERS' | 'ACCEPTANCE' | 'INVOICES' | 'DIARY' | 'DEFECTS'
+  | 'CHECKS' | 'AUDIT';
+export type EvidenceLevel = 'OK' | 'WARN' | 'MISSING';
+export interface EvidenceCheck { code: string; level: EvidenceLevel; params: Record<string, string> }
+export interface EvidenceFileRef { path: string; sha256: string | null; generated: boolean }
+export interface EvidenceItem {
+  section: EvidenceSection; date: string | null; by: string | null; title: string; status: string | null;
+  amount: number | null; currency: string | null; reference: string | null; text: string | null; files: EvidenceFileRef[];
+}
+export interface EvidenceOverview {
+  deal: { id: string; number: string; title: string; customer: string | null; language: string; contractValue: number;
+    currency: string };
+  items: EvidenceItem[]; checks: EvidenceCheck[]; score: { ok: number; warn: number; missing: number };
+  lastExport: { at: string; by: string | null; sha256sums: string | null; files: number | null } | null;
+}
+export interface EvidenceExport { blob: Blob; fileName: string; sha256sums: string | null }
 
 export interface DiaryEntry {
   id: string; entryDate: string; weather: string | null; workers: number | null; text: string; correctsId: string | null;
@@ -421,6 +439,14 @@ export interface Api {
   payInvoice(id: string, amount: number, paidOn: string): Promise<Invoice>;
   creditInvoice(id: string, reason: string): Promise<Invoice>;
   invoiceFile(id: string): Promise<Blob>;
+
+  dealDocuments(dealId: string): Promise<DealDocument[]>;
+  uploadDealDocument(dealId: string, file: Blob, fileName: string): Promise<DealDocument>;
+  removeDealDocument(dealId: string, fileId: string): Promise<void>;
+  dealDocumentBlob(dealId: string, fileId: string): Promise<Blob>;
+  evidence(dealId: string): Promise<EvidenceOverview>;
+  /** Builds the ZIP (recorded in the audit log); a text stand-in in demo mode. */
+  exportEvidence(dealId: string): Promise<EvidenceExport>;
 
   openOffer(token: string): Promise<OfferPage>;
   submitOffer(token: string, prices: Record<string, number>, note: string): Promise<OfferPage>;
