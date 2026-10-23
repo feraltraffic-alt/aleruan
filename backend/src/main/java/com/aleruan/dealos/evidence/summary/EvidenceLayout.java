@@ -32,7 +32,7 @@ public final class EvidenceLayout {
 
     /** Letters without diacritics, digits, dot, dash and underscore; never empty, never hidden. */
     public static String safeName(String name) {
-        String plain = Normalizer.normalize(name == null ? "" : name, Normalizer.Form.NFD).replaceAll("\\p{M}+", "");
+        String plain = Normalizer.normalize(letters(name == null ? "" : name), Normalizer.Form.NFD).replaceAll("\\p{M}+", "");
         String safe = plain.replaceAll("[^A-Za-z0-9._-]+", "_").replaceAll("_{2,}", "_").replaceAll("^[._]+", "");
         if (safe.isEmpty()) {
             safe = "file";
@@ -43,6 +43,13 @@ public final class EvidenceLayout {
             safe = safe.substring(0, MAX_NAME - ext.length()) + ext;
         }
         return safe;
+    }
+
+    /** Letters that are not a base letter plus an accent, so NFD leaves them alone. */
+    private static String letters(String s) {
+        return s.replace("ł", "l").replace("Ł", "L").replace("ø", "o").replace("Ø", "O").replace("đ", "d")
+                .replace("Đ", "D").replace("ß", "ss").replace("æ", "ae").replace("Æ", "AE").replace("œ", "oe")
+                .replace("Œ", "OE");
     }
 
     private static String unique(String folder, String name, Set<String> taken) {

@@ -17,8 +17,11 @@ const ORDER = Object.keys(FOLDERS) as EvidenceItem['section'][];
 const RUNNING = ['WON', 'IN_PROGRESS', 'COMPLETED'];
 const SEVERITY: Record<EvidenceLevel, number> = { MISSING: 0, WARN: 1, OK: 2 };
 
+const LETTERS: Record<string, string> = { ł: 'l', Ł: 'L', ø: 'o', Ø: 'O', đ: 'd', Đ: 'D', ß: 'ss', æ: 'ae', Æ: 'AE',
+  œ: 'oe', Œ: 'OE' };
+
 export const safeName = (name: string) => {
-  const plain = name.normalize('NFD').replace(/\p{M}+/gu, '');
+  const plain = name.replace(/[łŁøØđĐßæÆœŒ]/g, (c) => LETTERS[c]).normalize('NFD').replace(/\p{M}+/gu, '');
   const safe = plain.replace(/[^A-Za-z0-9._-]+/g, '_').replace(/_{2,}/g, '_').replace(/^[._]+/, '');
   return safe || 'file';
 };

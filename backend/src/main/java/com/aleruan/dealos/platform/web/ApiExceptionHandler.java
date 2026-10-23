@@ -4,6 +4,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 
 /** RFC 7807 problem responses for domain exceptions. */
 @RestControllerAdvice
@@ -23,6 +25,18 @@ class ApiExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     ProblemDetail invalidState(IllegalStateException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    /** An upload that is too large for the server's limit. */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ProblemDetail tooLarge(MaxUploadSizeExceededException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.PAYLOAD_TOO_LARGE, "The file is too large");
+    }
+
+    /** An upload endpoint called without a file (not multipart form data). */
+    @ExceptionHandler(MultipartException.class)
+    ProblemDetail notMultipart(MultipartException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Send the file as multipart form data");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

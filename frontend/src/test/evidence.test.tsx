@@ -43,6 +43,7 @@ describe('evidence package in the demo API', () => {
     expect(safeName('../../etc/passwd')).toBe('etc_passwd');
     expect(safeName('Příloha č. 1.pdf')).toBe('Priloha_c._1.pdf');
     expect(safeName('///')).toBe('file');
+    expect(safeName('Południe Budowa.json')).toBe('Poludnie_Budowa.json');
   });
 });
 

@@ -15,6 +15,8 @@ class EvidenceLayoutTest {
     @Test
     void namesArePlainAsciiWithoutPathTricks() {
         assertEquals("Smlouva_o_dilo_podepsana.pdf", EvidenceLayout.safeName("Smlouva o dílo – podepsaná.pdf"));
+        assertEquals("Poludnie_Budowa.json", EvidenceLayout.safeName("Południe Budowa.json"));
+        assertEquals("Strasse.pdf", EvidenceLayout.safeName("Straße.pdf"));
         assertEquals("etc_passwd", EvidenceLayout.safeName("../../etc/passwd"));
         assertEquals("pdf", EvidenceLayout.safeName(".pdf"));
         assertEquals("file", EvidenceLayout.safeName("///"));
