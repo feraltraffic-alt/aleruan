@@ -1,0 +1,4 @@
+# Local development without Keycloak: every request is allowed and audited as "system".
+dealos:
+  security:
+    enabled: false

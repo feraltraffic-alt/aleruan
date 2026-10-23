@@ -1,0 +1,38 @@
+{
+  "realm": "aleruan",
+  "enabled": true,
+  "displayName": "Aleruan Deal OS",
+  "roles": {
+    "realm": [
+      {"name": "ADMIN", "description": "Администратор"},
+      {"name": "SALES_MANAGER", "description": "Менеджер по продажам"},
+      {"name": "ACCOUNT_MANAGER", "description": "Менеджер по учёту"},
+      {"name": "ACCOUNTANT", "description": "Бухгалтер"},
+      {"name": "PROJECT_MANAGER", "description": "Проджект-менеджер"},
+      {"name": "FOREMAN", "description": "Бригадир"},
+      {"name": "WAREHOUSE_KEEPER", "description": "Кладовщик"}
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "dealos-web",
+      "name": "Aleruan Deal OS web",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {"pkce.code.challenge.method": "S256"}
+    }
+  ],
+  "users": [
+    {
+      "username": "admin.dev",
+      "enabled": true,
+      "email": "admin.dev@example.invalid",
+      "firstName": "Dev",
+      "lastName": "Admin",
+      "credentials": [{"type": "password", "value": "dev", "temporary": true}],
+      "realmRoles": ["ADMIN"]
+    }
+  ]
+}

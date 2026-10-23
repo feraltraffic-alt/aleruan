@@ -1,0 +1,36 @@
+# Local development infrastructure. Usage: cp .env.example .env && docker compose up -d
+services:
+  postgres:
+    image: postgis/postgis:16-3.4   # PostGIS needed from the "objects & map" sprint
+    environment:
+      POSTGRES_DB: dealos
+      POSTGRES_USER: ${DB_USER:-dealos}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dealos}
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dealos} -d dealos"]
+      interval: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: start-dev --import-realm --http-port=8180
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    ports: ["8180:8180"]
+    volumes: [./keycloak:/opt/keycloak/data/import:ro]
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER:-dealos}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:-dealos-secret}
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [miniodata:/data]
+
+volumes:
+  pgdata:
+  miniodata:
