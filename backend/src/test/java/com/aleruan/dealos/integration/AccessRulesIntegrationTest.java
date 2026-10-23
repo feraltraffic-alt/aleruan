@@ -1,6 +1,7 @@
 package com.aleruan.dealos.integration;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -96,5 +97,19 @@ class AccessRulesIntegrationTest {
         as("ADMIN", post("/api/reference/work-types"), ALLOWED);
         as("SALES_MANAGER", post("/api/reference/work-types"), DENIED);
         as("ADMIN", get("/api/no-such-endpoint"), DENIED);
+    }
+
+    @Test
+    void evidencePackageForTheOfficeContractPapersBySalesOrProject() throws Exception {
+        as("ACCOUNTANT", get("/api/deals/" + ANY + "/evidence"), ALLOWED);
+        as("ACCOUNTANT", post("/api/deals/" + ANY + "/evidence/export"), ALLOWED);
+        as("PROJECT_MANAGER", post("/api/deals/" + ANY + "/evidence/export"), ALLOWED);
+        as("FOREMAN", get("/api/deals/" + ANY + "/evidence"), DENIED);
+        as("FOREMAN", post("/api/deals/" + ANY + "/evidence/export"), DENIED);
+        as("PROJECT_MANAGER", post("/api/deals/" + ANY + "/documents"), ALLOWED);
+        as("SALES_MANAGER", delete("/api/deals/" + ANY + "/documents/" + ANY), ALLOWED);
+        as("ACCOUNTANT", post("/api/deals/" + ANY + "/documents"), DENIED);
+        as("ACCOUNTANT", get("/api/deals/" + ANY + "/documents/" + ANY), ALLOWED);
+        as("FOREMAN", get("/api/deals/" + ANY + "/documents/" + ANY), DENIED);
     }
 }

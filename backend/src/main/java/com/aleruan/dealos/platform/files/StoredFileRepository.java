@@ -14,6 +14,15 @@ interface StoredFileRepository extends JpaRepository<StoredFile, UUID> {
             from StoredFile f where f.ownerType = :type and f.ownerId in :ids order by f.uploadedAt""")
     List<FileInfo> infos(@Param("type") String type, @Param("ids") List<UUID> ids);
 
+    /** Bytes only: exports read many files and must not keep whole entities in the session. */
+    @Query("select f.data from StoredFile f where f.id = :id")
+    List<byte[]> dataOf(@Param("id") UUID id);
+
+    default byte[] data(UUID id) {
+        List<byte[]> found = dataOf(id);
+        return found.isEmpty() ? null : found.get(0);
+    }
+
     @Query("select count(f) from StoredFile f where f.ownerType = :type and f.ownerId = :id")
     long countFor(@Param("type") String type, @Param("id") UUID id);
 }

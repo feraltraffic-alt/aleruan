@@ -1,6 +1,7 @@
 package com.aleruan.dealos.deal;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,12 +24,16 @@ public interface DealCatalog {
 
     /** A change order as the customer sees it: prices only. */
     record ChangeOrderSummary(UUID id, UUID dealId, String number, int seq, String title, String reason, String status,
-                              int extraDays, List<CustomerLine> lines, BigDecimal total) {
+                              int extraDays, List<CustomerLine> lines, BigDecimal total, Instant decidedAt,
+                              String decidedBy) {
     }
 
     Optional<DealSummary> find(UUID dealId);
 
     Optional<ChangeOrderSummary> changeOrder(UUID changeOrderId);
+
+    /** All change orders of the deal, in order. */
+    List<ChangeOrderSummary> changeOrders(UUID dealId);
 
     /** Agreed value for the customer: the deal's lines plus approved change orders. */
     BigDecimal contractValue(UUID dealId);

@@ -3,6 +3,7 @@ package com.aleruan.dealos.deal.application;
 import com.aleruan.dealos.counterparty.CounterpartyLookup;
 import com.aleruan.dealos.counterparty.CounterpartySummary;
 import com.aleruan.dealos.deal.DealCatalog;
+import com.aleruan.dealos.deal.domain.ChangeOrder;
 import com.aleruan.dealos.deal.domain.ChangeOrderRepository;
 import com.aleruan.dealos.deal.domain.Deal;
 import com.aleruan.dealos.deal.domain.DealLine;
@@ -139,17 +140,25 @@ public class DealService implements DealCatalog {
     @Override
     @Transactional(readOnly = true)
     public Optional<ChangeOrderSummary> changeOrder(UUID changeOrderId) {
-        return changeOrders.findById(changeOrderId).map(co -> {
-            Deal deal = get(co.getDealId());
-            List<CustomerLine> lines = co.getLines().stream().map(l -> {
-                DealPricing.PricedLine p = DealPricing.price(l.pricingInput(), deal.getDefaultMarkupPct());
-                return new CustomerLine(l.getPosition(), l.getKind().name(), l.getDescription(), l.getWorkType(),
-                        l.getUnit(), l.getQuantity(), p.unitPrice(), p.priceTotal());
-            }).toList();
-            return new ChangeOrderSummary(co.getId(), deal.getId(), co.number(deal.getNumber()), co.getSeq(),
-                    co.getTitle(), co.getReason(), co.getStatus().name(), co.getExtraDays(), lines,
-                    co.totals(deal.getDefaultMarkupPct()).price());
-        });
+        return changeOrders.findById(changeOrderId).map(co -> summary(get(co.getDealId()), co));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChangeOrderSummary> changeOrders(UUID dealId) {
+        Deal deal = get(dealId);
+        return changeOrders.findByDealIdOrderBySeq(dealId).stream().map(co -> summary(deal, co)).toList();
+    }
+
+    private static ChangeOrderSummary summary(Deal deal, ChangeOrder co) {
+        List<CustomerLine> lines = co.getLines().stream().map(l -> {
+            DealPricing.PricedLine p = DealPricing.price(l.pricingInput(), deal.getDefaultMarkupPct());
+            return new CustomerLine(l.getPosition(), l.getKind().name(), l.getDescription(), l.getWorkType(),
+                    l.getUnit(), l.getQuantity(), p.unitPrice(), p.priceTotal());
+        }).toList();
+        return new ChangeOrderSummary(co.getId(), deal.getId(), co.number(deal.getNumber()), co.getSeq(),
+                co.getTitle(), co.getReason(), co.getStatus().name(), co.getExtraDays(), lines,
+                co.totals(deal.getDefaultMarkupPct()).price(), co.getDecidedAt(), co.getDecidedBy());
     }
 
     @Override

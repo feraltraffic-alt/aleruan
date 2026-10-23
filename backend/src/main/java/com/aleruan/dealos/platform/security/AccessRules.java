@@ -60,6 +60,10 @@ final class AccessRules {
 
                 // deals and what hangs off them
                 .requestMatchers(POST, "/api/deals/*/invoices").hasAnyRole(FINANCE)
+                // evidence package: anyone in the office may build it; contract papers by sales or project
+                .requestMatchers(POST, "/api/deals/*/evidence/export").hasAnyRole(OFFICE)
+                .requestMatchers(POST, "/api/deals/*/documents").hasAnyRole(SALES_OR_PROJECT)
+                .requestMatchers(DELETE, "/api/deals/*/documents/*").hasAnyRole(SALES_OR_PROJECT)
                 .requestMatchers(POST, "/api/deals/*/site").hasAnyRole(SALES_OR_PROJECT)
                 .requestMatchers(POST, "/api/deals/*/change-orders", "/api/deals/*/rfqs").hasAnyRole(SALES_OR_PROJECT)
                 .requestMatchers(GET, "/api/deals/**", "/api/quotes/**", "/api/change-orders/**", "/api/rfqs/**")

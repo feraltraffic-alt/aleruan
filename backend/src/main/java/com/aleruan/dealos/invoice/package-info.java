@@ -5,5 +5,5 @@
 @org.springframework.modulith.ApplicationModule(
         displayName = "Invoice",
         allowedDependencies = {"platform::audit", "platform::web", "platform::security", "platform::documents",
-                "platform::rates", "deal", "counterparty", "site"})
+                "platform::rates", "platform::evidence", "deal", "counterparty", "site"})
 package com.aleruan.dealos.invoice;

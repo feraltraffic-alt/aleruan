@@ -11,4 +11,7 @@ public interface CounterpartyLookup {
 
     /** Counterparties with the given role, optionally filtered by work type and country. */
     List<CounterpartySummary> withRole(String role, String workType, String country);
+
+    /** Registry checks of the counterparty, newest first. */
+    List<CheckRecord> checks(UUID id);
 }

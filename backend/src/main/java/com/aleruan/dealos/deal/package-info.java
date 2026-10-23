@@ -4,5 +4,6 @@
  */
 @org.springframework.modulith.ApplicationModule(
         displayName = "Deal",
-        allowedDependencies = {"platform::audit", "platform::web", "platform::security", "counterparty"})
+        allowedDependencies = {"platform::audit", "platform::web", "platform::security", "platform::files",
+                "platform::evidence", "counterparty"})
 package com.aleruan.dealos.deal;

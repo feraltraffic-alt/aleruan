@@ -71,6 +71,16 @@ public class FileStore {
         return new Content(f.info(), f.data());
     }
 
+    /** The file's bytes without loading the entity, for exports that read many files in one go. */
+    @Transactional(readOnly = true)
+    public byte[] data(UUID id) {
+        byte[] data = files.data(id);
+        if (data == null) {
+            throw new NotFoundException("File " + id + " not found");
+        }
+        return data;
+    }
+
     /** Removes a file of the given owner; the audit log keeps its name and hash. */
     @Transactional
     public void delete(String ownerType, UUID ownerId, UUID fileId) {

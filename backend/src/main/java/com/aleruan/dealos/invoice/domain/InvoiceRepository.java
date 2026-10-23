@@ -17,6 +17,15 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
     List<Invoice> search(@Param("status") InvoiceStatus status, @Param("dealId") UUID dealId,
                          @Param("customerId") UUID customerId);
 
+    /** Only the PDF bytes of an issued invoice. */
+    @Query("select i.pdf from Invoice i where i.id = :id")
+    List<byte[]> pdfOf(@Param("id") UUID id);
+
+    default byte[] pdf(UUID id) {
+        List<byte[]> found = pdfOf(id);
+        return found.isEmpty() ? null : found.get(0);
+    }
+
     /** Stage ids already on a draft or issued invoice that has not been credited. */
     @Query("""
             select l.stageId from Invoice i join i.lines l

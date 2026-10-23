@@ -15,6 +15,15 @@ public interface QuoteRepository extends JpaRepository<Quote, UUID> {
             from Quote q where q.dealId = :dealId order by q.version desc""")
     List<QuoteSummary> summaries(UUID dealId);
 
+    /** Only the PDF bytes, so exporting many quotes does not keep whole entities in memory. */
+    @Query("select q.pdf from Quote q where q.id = :id")
+    List<byte[]> pdfOf(UUID id);
+
+    default byte[] pdf(UUID id) {
+        List<byte[]> found = pdfOf(id);
+        return found.isEmpty() ? null : found.get(0);
+    }
+
     @Query("select coalesce(max(q.version), 0) from Quote q where q.dealId = :dealId")
     int lastVersion(UUID dealId);
 }

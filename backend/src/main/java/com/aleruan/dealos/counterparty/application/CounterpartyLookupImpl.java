@@ -1,7 +1,9 @@
 package com.aleruan.dealos.counterparty.application;
 
+import com.aleruan.dealos.counterparty.CheckRecord;
 import com.aleruan.dealos.counterparty.CounterpartyLookup;
 import com.aleruan.dealos.counterparty.CounterpartySummary;
+import com.aleruan.dealos.counterparty.domain.CheckResultRepository;
 import com.aleruan.dealos.counterparty.domain.Counterparty;
 import com.aleruan.dealos.counterparty.domain.CounterpartyRepository;
 import com.aleruan.dealos.counterparty.domain.CounterpartyRole;
@@ -16,9 +18,21 @@ import org.springframework.transaction.annotation.Transactional;
 class CounterpartyLookupImpl implements CounterpartyLookup {
 
     private final CounterpartyRepository repository;
+    private final CheckResultRepository checks;
 
-    CounterpartyLookupImpl(CounterpartyRepository repository) {
+    CounterpartyLookupImpl(CounterpartyRepository repository, CheckResultRepository checks) {
         this.repository = repository;
+        this.checks = checks;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CheckRecord> checks(UUID id) {
+        return checks.findByCounterpartyIdOrderByCheckedAtDesc(id).stream()
+                .map(r -> new CheckRecord(r.getId(), r.getCounterpartyId(), r.getSource().name(), r.getStatus().name(),
+                        r.getFindings().stream().map(Enum::name).toList(), r.getRequestId(), r.getUnavailableReason(),
+                        r.getRawResponse(), r.getCheckedAt(), r.getCheckedAccount()))
+                .toList();
     }
 
     @Override
