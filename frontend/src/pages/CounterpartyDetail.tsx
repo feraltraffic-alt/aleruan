@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api, type CheckFinding } from '../api';
+import { api, type CheckFinding, type CheckResult } from '../api';
 import { LoadError } from '../components/LoadError';
 import { Status } from '../components/Status';
 import { useLoad } from '../components/useLoad';
@@ -12,6 +12,11 @@ export function CounterpartyDetailPage() {
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
   const [lastFindings, setLastFindings] = useState<CheckFinding[] | null>(null);
+
+  const [account, setAccount] = useState('');
+  const [accountResult, setAccountResult] = useState<CheckResult | null>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [accountBusy, setAccountBusy] = useState(false);
 
   const cp = useLoad(() => api.getCounterparty(id), [id]);
   const history = useLoad(() => api.checkHistory(id), [id]);
@@ -29,6 +34,28 @@ export function CounterpartyDetailPage() {
     } finally {
       setChecking(false);
     }
+  };
+
+  const checkAccount = async (e: FormEvent) => {
+    e.preventDefault();
+    setAccountResult(null);
+    if (!account.trim()) { setAccountError(t('acct.required')); return; }
+    setAccountBusy(true);
+    setAccountError(null);
+    try {
+      setAccountResult(await api.checkAccount(id, account));
+      await Promise.all([history.reload(), audit.reload()]);
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAccountBusy(false);
+    }
+  };
+
+  const accountMessage = (r: CheckResult) => {
+    if (r.findings.includes('MANUAL_REVIEW_REQUIRED')) return t('acct.manual');
+    if (r.findings.includes('SOURCE_UNAVAILABLE')) return t('acct.unavailable');
+    return r.findings.includes('ACCOUNT_NOT_PUBLISHED') ? t('acct.bad') : t('acct.ok');
   };
 
   if (cp.error) return <LoadError message={cp.error} onRetry={cp.reload} />;
@@ -70,6 +97,25 @@ export function CounterpartyDetailPage() {
       </div>
 
       <section className="section">
+        <h2>{t('acct.title')}</h2>
+        <form className="panel box account-form" onSubmit={checkAccount} noValidate>
+          <p className="lead" style={{ marginTop: 0 }}>{t('acct.lead')}</p>
+          <div className="fill-row">
+            <input className="input" value={account} onChange={(e) => { setAccount(e.target.value); setAccountError(null); }}
+              aria-label={t('acct.input')} placeholder={t('acct.input')} aria-invalid={!!accountError} />
+            <button className="btn primary" disabled={accountBusy}>{t('acct.check')}</button>
+          </div>
+          {accountError && <p className="note bad" role="alert" style={{ marginTop: 12 }}>{accountError}</p>}
+          {accountResult && (
+            <p className={`verdict-line ${accountResult.status}`} role="status">
+              <Status status={accountResult.status} /> {accountMessage(accountResult)}
+              {accountResult.requestId && <span className="sub">{t('detail.col.evidence')}: {accountResult.requestId}</span>}
+            </p>
+          )}
+        </form>
+      </section>
+
+      <section className="section">
         <h2>{t('detail.history')}</h2>
         {history.error ? <LoadError message={history.error} onRetry={history.reload} /> : (
           <div className="panel table-wrap">
@@ -88,12 +134,13 @@ export function CounterpartyDetailPage() {
                   {history.data?.map((r) => (
                     <tr key={r.id}>
                       <td>{date(r.checkedAt)}</td>
-                      <td>{r.source}</td>
+                      <td>{t(`src.${r.source}`)}</td>
                       <td><Status status={r.status} /></td>
                       <td>
                         {r.findings.length === 0 ? <span className="sub">{t('detail.clean')}</span> : (
                           <ul className="findings">{r.findings.map((f) => <li key={f}>{t(`find.${f}`)}</li>)}</ul>
                         )}
+                        {r.checkedAccount && <span className="sub">{t('detail.account', { acc: r.checkedAccount })}</span>}
                         {r.unavailableReason && <span className="sub">{r.unavailableReason}</span>}
                       </td>
                       <td className="mono-ish">{r.requestId ?? '—'}</td>
@@ -116,7 +163,7 @@ export function CounterpartyDetailPage() {
                   <tr key={a.seq}>
                     <td style={{ width: 70 }}>№{a.seq}</td>
                     <td>{date(a.occurredAt)}</td>
-                    <td>{a.action === 'CREATED' || a.action === 'CHECKED' ? t(`action.${a.action}`) : a.action}</td>
+                    <td>{['CREATED', 'CHECKED', 'ACCOUNT_CHECKED'].includes(a.action) ? t(`action.${a.action as 'CREATED' | 'CHECKED' | 'ACCOUNT_CHECKED'}`) : a.action}</td>
                     <td>{a.actor}</td>
                     <td className="hash">{a.hash.slice(0, 16)}…</td>
                   </tr>

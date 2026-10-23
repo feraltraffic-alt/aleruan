@@ -107,8 +107,9 @@ export function createMockApi(): Api {
       const results: CheckResult[] = [];
       const add = (source: CheckResult['source'], findings: CheckFinding[], requestId: string | null = null) =>
         results.push({ id: uid(), source, status: statusOf(findings), findings, requestId,
-          unavailableReason: null, checkedAt: now() });
-      if (c.country === 'CZ' && c.companyId) add('ARES', []);
+          unavailableReason: null, checkedAt: now(), checkedAccount: null });
+      if (c.country === 'CZ' && c.companyId) { add('ARES', []); add('REGISTR_DPH', []); }
+      if (c.country === 'PL' && c.companyId) { add('BIALA_LISTA', [], `DEMO-WL-${Date.now().toString(36)}`); add('KRS', []); }
       if (c.vatNumber && c.country !== 'MD') add('VIES', [], `DEMO${Date.now().toString(36).toUpperCase()}`);
       const all = results.flatMap((r) => r.findings);
       const run: CheckRun = results.length
@@ -120,6 +121,21 @@ export function createMockApi(): Api {
       checks.set(id, [...results, ...(checks.get(id) ?? [])]);
       record('Counterparty', id, 'CHECKED', { status: run.status });
       return delay(run);
+    },
+    checkAccount: async (id, account) => {
+      const c = find(id);
+      const compact = account.replace(/\s/g, '').toUpperCase();
+      // Demo rule: accounts containing 999 are "not published"; countries without a registry need manual review.
+      const findings: CheckFinding[] = !['CZ', 'PL'].includes(c.country) ? ['MANUAL_REVIEW_REQUIRED']
+        : compact.includes('999') ? ['ACCOUNT_NOT_PUBLISHED'] : [];
+      const result: CheckResult = {
+        id: uid(), source: c.country === 'PL' ? 'BIALA_LISTA' : c.country === 'CZ' ? 'REGISTR_DPH' : 'MANUAL',
+        status: statusOf(findings), findings, requestId: c.country === 'PL' ? `DEMO-WL-${Date.now().toString(36)}` : null,
+        unavailableReason: null, checkedAt: now(), checkedAccount: compact,
+      };
+      checks.set(id, [result, ...(checks.get(id) ?? [])]);
+      record('Counterparty', id, 'ACCOUNT_CHECKED', { account: compact, status: result.status });
+      return delay(result);
     },
     checkHistory: async (id) => {
       find(id);

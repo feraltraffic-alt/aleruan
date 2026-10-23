@@ -1,4 +1,5 @@
-import type { Api, Counterparty, NewCounterparty } from './types';
+import { accessToken } from '../auth';
+import type { Api, CheckResult, Counterparty, NewCounterparty } from './types';
 
 /** Error with the server's problem detail (RFC 7807) message, ready to show to the user. */
 export class ApiError extends Error {
@@ -10,9 +11,14 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await accessToken();
   const res = await fetch(`/api${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers ?? {}),
+    },
   });
   if (!res.ok) {
     let detail = res.statusText;
@@ -41,6 +47,8 @@ export const httpApi: Api = {
     request<Counterparty>('/counterparties', { method: 'POST', body: JSON.stringify(input) }),
   runChecks: (id) => request(`/counterparties/${id}/checks`, { method: 'POST' }),
   checkHistory: (id) => request(`/counterparties/${id}/checks`),
+  checkAccount: (id, account) => request<CheckResult>(`/counterparties/${id}/account-checks`,
+    { method: 'POST', body: JSON.stringify({ account }) }),
   lookup: async (country, companyId, vatNumber) => {
     try {
       return await request(`/counterparties/lookup${qs({ country, companyId, vatNumber })}`);

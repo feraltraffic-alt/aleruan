@@ -4,7 +4,8 @@ export type CheckSource =
   | 'VIES' | 'ARES' | 'REGISTR_DPH' | 'ISIR' | 'BIALA_LISTA' | 'KRS' | 'CEIDG' | 'SANCTIONS_EU' | 'MANUAL';
 export type CheckFinding =
   | 'VAT_INVALID' | 'NOT_FOUND_IN_REGISTRY' | 'UNRELIABLE_VAT_PAYER' | 'VAT_NOT_ACTIVE' | 'INSOLVENCY'
-  | 'LIQUIDATION_OR_CEASED' | 'SANCTIONS_HIT' | 'YOUNG_COMPANY' | 'ACCOUNT_NOT_PUBLISHED'
+  | 'LIQUIDATION_OR_CEASED' | 'SANCTIONS_HIT' | 'YOUNG_COMPANY' | 'NOT_VAT_PAYER' | 'SANCTIONS_POSSIBLE_MATCH'
+  | 'ACCOUNT_NOT_PUBLISHED'
   | 'SOURCE_UNAVAILABLE' | 'MANUAL_REVIEW_REQUIRED';
 
 export interface Counterparty {
@@ -41,6 +42,8 @@ export interface CheckResult {
   requestId: string | null;
   unavailableReason: string | null;
   checkedAt: string;
+  /** Set for bank-account checks. */
+  checkedAccount: string | null;
 }
 
 export interface CheckRun {
@@ -92,6 +95,7 @@ export interface Api {
   createCounterparty(input: NewCounterparty): Promise<Counterparty>;
   runChecks(id: string): Promise<CheckRun>;
   checkHistory(id: string): Promise<CheckResult[]>;
+  checkAccount(id: string, account: string): Promise<CheckResult>;
   lookup(country: string, companyId?: string, vatNumber?: string): Promise<LookupResult | null>;
   verifyAudit(): Promise<ChainVerification>;
   auditHistory(entityType: string, entityId: string): Promise<AuditRecord[]>;

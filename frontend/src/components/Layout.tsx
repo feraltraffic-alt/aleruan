@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { usingMocks } from '../api';
+import { authEnabled, currentUser, logout } from '../auth';
 import { LANGS, useI18n, type MessageKey } from '../i18n';
 
 const LIVE: { to: string; key: MessageKey }[] = [
@@ -32,6 +33,12 @@ export function Layout() {
           <hr />
           {SYSTEM.map(link)}
         </nav>
+        {authEnabled && (
+          <div className="side-user">
+            <span>{currentUser()?.name}</span>
+            <button onClick={logout}>{t('auth.logout')}</button>
+          </div>
+        )}
         <div className="side-foot" role="group" aria-label="Language">
           {LANGS.map((l) => (
             <button key={l} aria-pressed={lang === l} onClick={() => setLang(l)}>{l.toUpperCase()}</button>

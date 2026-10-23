@@ -41,4 +41,15 @@ describe('app screens on demo data', () => {
     fireEvent.click(screen.getByText('Заполнить из реестра'));
     await waitFor(() => expect(screen.getByLabelText('Полное название')).toHaveValue('Demo firma 21590109 s.r.o.'));
   });
+
+  it('detail: runs a check and an account check, both land in history', async () => {
+    renderAt('/counterparties');
+    fireEvent.click(await screen.findByText('Stavby Horák s.r.o.'));
+    fireEvent.click(await screen.findByText('Проверить сейчас'));
+    expect(await screen.findByText('Registr DPH')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Номер счёта или IBAN'), { target: { value: '999-1/0100' } });
+    fireEvent.click(screen.getByText('Проверить счёт'));
+    expect(await screen.findByText('Счёт не опубликован в реестре — не оплачивайте на него без проверки.')).toBeInTheDocument();
+    expect(await screen.findByText('Счёт: 999-1/0100')).toBeInTheDocument();
+  });
 });

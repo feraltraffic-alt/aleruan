@@ -51,7 +51,7 @@ class AresClient implements RegistryClient {
                     .uri("/ekonomicke-subjekty/{ico}", ico)
                     .retrieve()
                     // 404 carries {"kod":"NENALEZENO"}: read the body instead of throwing
-                    .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> { })
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> { })
                     .body(String.class), RetryPolicy.defaults(), ResilientCall.Sleeper.THREAD);
             return Optional.of(AresResultMapper.map(http.parse(raw), raw, clock.instant()));
         } catch (RegistryUnavailableException e) {
