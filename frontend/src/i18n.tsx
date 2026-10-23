@@ -770,6 +770,7 @@ const ru = {
   'ev.check.AUDIT_CHAIN.MISSING': 'Цепочка журнала аудита нарушена на записи {seq}',
   'ev.check.FILES_INTACT.OK': 'Хранимые файлы совпадают с записанными хэшами ({count})',
   'ev.check.FILE_INTEGRITY.MISSING': 'Файл {path} не совпадает с хэшем, записанным при сохранении',
+  'ev.check.FILE_UNHASHED.WARN': 'Для файла {path} при сохранении не записан хэш — его нельзя проверить',
 };
 
 type Dict = Record<keyof typeof ru, string>;
@@ -1541,6 +1542,7 @@ const cs: Dict = {
   'ev.check.AUDIT_CHAIN.MISSING': 'Auditní řetězec je porušen u záznamu {seq}',
   'ev.check.FILES_INTACT.OK': 'Uložené soubory odpovídají zaznamenaným hashům ({count})',
   'ev.check.FILE_INTEGRITY.MISSING': 'Soubor {path} neodpovídá hashi zaznamenanému při uložení',
+  'ev.check.FILE_UNHASHED.WARN': 'Soubor {path} nemá hash zaznamenaný při uložení, nelze jej ověřit',
 };
 
 const en: Dict = {
@@ -2310,6 +2312,7 @@ const en: Dict = {
   'ev.check.AUDIT_CHAIN.MISSING': 'Audit log chain broken at record {seq}',
   'ev.check.FILES_INTACT.OK': 'Stored files match their recorded hashes ({count})',
   'ev.check.FILE_INTEGRITY.MISSING': 'File {path} does not match the hash recorded when it was stored',
+  'ev.check.FILE_UNHASHED.WARN': 'File {path} has no hash recorded when it was stored, so it cannot be checked',
 };
 
 export const DICTS: Record<Lang, Dict> = { ru, cs, en };

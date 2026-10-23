@@ -40,8 +40,15 @@ class EvidenceController {
     @PostMapping("/export")
     ResponseEntity<Resource> export(@PathVariable UUID dealId) throws IOException {
         EvidenceService.Export export = service.export(dealId);
-        long size = Files.size(export.file());
-        InputStream in = new DeletingInputStream(export.file());
+        long size;
+        InputStream in;
+        try {
+            size = Files.size(export.file());
+            in = new DeletingInputStream(export.file());
+        } catch (IOException | RuntimeException e) {
+            Files.deleteIfExists(export.file());
+            throw e;
+        }
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("application/zip"))
                 .contentLength(size)

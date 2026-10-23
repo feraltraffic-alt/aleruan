@@ -43,6 +43,6 @@ class EvidenceLayoutTest {
     }
 
     private static EvidenceFile file(String name) {
-        return new EvidenceFile(name, "image/jpeg", "abc", () -> new byte[0]);
+        return EvidenceFile.stored(name, "image/jpeg", "abc", () -> new byte[0]);
     }
 }

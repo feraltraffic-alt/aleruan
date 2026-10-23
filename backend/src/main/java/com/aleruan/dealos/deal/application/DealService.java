@@ -158,7 +158,8 @@ public class DealService implements DealCatalog {
         }).toList();
         return new ChangeOrderSummary(co.getId(), deal.getId(), co.number(deal.getNumber()), co.getSeq(),
                 co.getTitle(), co.getReason(), co.getStatus().name(), co.getExtraDays(), lines,
-                co.totals(deal.getDefaultMarkupPct()).price(), co.getDecidedAt(), co.getDecidedBy());
+                co.totals(deal.getDefaultMarkupPct()).price(), co.getDecidedAt(), co.getDecidedBy(),
+                co.getSentAt(), co.getCreatedBy());
     }
 
     @Override

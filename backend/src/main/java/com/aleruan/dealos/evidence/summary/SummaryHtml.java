@@ -126,6 +126,9 @@ public final class SummaryHtml {
             h.append("<p><span class=\"k\">").append(esc(t(lang, "audit.lastHash"))).append("</span><br/><span class=\"hash\">")
                     .append(esc(a.lastHash())).append("</span></p>");
         }
+        if (a.records() > 0) {
+            h.append("<p class=\"note\">").append(esc(t(lang, "audit.redacted"))).append("</p>");
+        }
         m.items().stream().filter(i -> i.entry().section() == EvidenceSection.AUDIT)
                 .flatMap(i -> i.files().stream())
                 .forEach(f -> h.append("<div class=\"file\">").append(esc(f.path())).append(" *</div>"));

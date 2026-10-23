@@ -9,6 +9,8 @@ import com.aleruan.dealos.platform.evidence.EvidenceFile;
 import com.aleruan.dealos.platform.evidence.EvidenceSection;
 import com.aleruan.dealos.quote.domain.QuoteRepository;
 import com.aleruan.dealos.quote.domain.QuoteSummary;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
@@ -43,7 +45,7 @@ class QuoteEvidence implements EvidenceContributor {
                     .by(q.issuedBy())
                     .amount(q.total(), q.currency())
                     .reference(q.displayNumber())
-                    .file(EvidenceFile.pdf(q.displayNumber().replace('/', '-') + ".pdf", q.pdfSha256(),
+                    .file(EvidenceFile.storedPdf(q.displayNumber().replace('/', '-') + ".pdf", q.pdfSha256(),
                             () -> quotes.pdf(id)))
                     .build());
             out.audit(QuoteService.AUDIT_TYPE, id);
@@ -64,13 +66,16 @@ class QuoteEvidence implements EvidenceContributor {
                 continue;
             }
             UUID id = co.id();
+            Instant sent = co.sentAt() != null ? co.sentAt() : co.decidedAt();
+            LocalDate sentOn = sent == null ? null : sent.atZone(PRAGUE).toLocalDate();
+            String drafter = co.createdBy();
             out.entry(EvidenceEntry.of(EvidenceSection.CHANGE_ORDERS, co.number() + " " + co.title())
                     .date(co.decidedAt() == null ? null : co.decidedAt().atZone(PRAGUE).toLocalDate())
                     .status(co.status())
                     .amount(co.total(), currency)
                     .reference(co.number())
                     .by(co.decidedBy())
-                    .file(EvidenceFile.pdf(co.number() + ".pdf", null, () -> service.changeOrderPdf(id, null)))
+                    .file(EvidenceFile.generatedPdf(co.number() + ".pdf", () -> service.changeOrderPdf(id, null, sentOn, drafter)))
                     .build());
         }
     }

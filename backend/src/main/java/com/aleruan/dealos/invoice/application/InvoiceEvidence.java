@@ -54,7 +54,7 @@ class InvoiceEvidence implements EvidenceContributor {
                     .status(i.getStatus().name())
                     .amount(i.getTotal(), i.getCurrency())
                     .reference(i.getVariableSymbol())
-                    .file(EvidenceFile.pdf(i.getNumber() + ".pdf", i.getPdfSha256(), () -> invoices.pdf(id)))
+                    .file(EvidenceFile.storedPdf(i.getNumber() + ".pdf", i.getPdfSha256(), () -> invoices.pdf(id)))
                     .build());
             out.audit(InvoiceService.AUDIT_TYPE, id);
 

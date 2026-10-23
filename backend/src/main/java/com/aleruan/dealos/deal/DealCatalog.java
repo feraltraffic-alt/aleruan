@@ -25,7 +25,7 @@ public interface DealCatalog {
     /** A change order as the customer sees it: prices only. */
     record ChangeOrderSummary(UUID id, UUID dealId, String number, int seq, String title, String reason, String status,
                               int extraDays, List<CustomerLine> lines, BigDecimal total, Instant decidedAt,
-                              String decidedBy) {
+                              String decidedBy, Instant sentAt, String createdBy) {
     }
 
     Optional<DealSummary> find(UUID dealId);

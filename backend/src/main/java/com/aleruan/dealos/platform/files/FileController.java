@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 class FileController {
 
+    /** Owner type of a deal's contract papers (deal module); never served through this site-file endpoint. */
+    static final String DEAL_PAPERS = "Deal";
+
     private final FileStore store;
 
     FileController(FileStore store) {
@@ -23,6 +26,10 @@ class FileController {
     @GetMapping("/api/files/{id}")
     ResponseEntity<byte[]> get(@PathVariable UUID id) {
         FileStore.Content c = store.get(id);
+        if (DEAL_PAPERS.equals(c.info().ownerType())) {
+            // contract papers are served only under /api/deals/{id}/documents, to deal users
+            throw new com.aleruan.dealos.platform.web.NotFoundException("File " + id + " not found");
+        }
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(c.info().contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline()

@@ -104,7 +104,7 @@ class SiteEvidence implements EvidenceContributor {
                     .amount(s.getAmount(), currency)
                     .reference(number)
                     .text(s.getRemarks())
-                    .file(EvidenceFile.pdf(number + ".pdf", null, () -> acceptance.protocol(id, null)))
+                    .file(EvidenceFile.generatedPdf(number + ".pdf", () -> acceptance.protocol(id, null)))
                     .build());
         }
         BigDecimal contract = deals.contractValue(dealId);
@@ -173,7 +173,7 @@ class SiteEvidence implements EvidenceContributor {
         return infos.stream().map(f -> {
             out.audit("File", f.id());
             UUID id = f.id();
-            return new EvidenceFile(prefix + f.fileName(), f.contentType(), f.sha256(), () -> files.data(id));
+            return EvidenceFile.stored(prefix + f.fileName(), f.contentType(), f.sha256(), () -> files.data(id));
         }).toList();
     }
 }

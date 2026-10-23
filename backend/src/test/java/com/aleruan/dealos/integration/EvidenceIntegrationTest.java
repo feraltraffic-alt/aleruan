@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.aleruan.dealos.counterparty.application.CounterpartyService;
 import com.aleruan.dealos.counterparty.domain.Counterparty;
@@ -54,6 +56,9 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 class EvidenceIntegrationTest extends IntegrationTestBase {
 
@@ -72,6 +77,7 @@ class EvidenceIntegrationTest extends IntegrationTestBase {
     @Autowired AuditService audit;
     @Autowired ObjectMapper json;
     @Autowired JdbcTemplate jdbc;
+    @Autowired WebApplicationContext web;
 
     @Test
     void completenessExportHashesAndAuditAnchor() throws Exception {
@@ -176,6 +182,18 @@ class EvidenceIntegrationTest extends IntegrationTestBase {
         assertTrue(types.containsAll(Set.of("Deal", "Quote", "Site", "AcceptanceStage", "DiaryEntry", "Defect", "File",
                 "Invoice", "Counterparty")), types.toString());
         extract.forEach(r -> assertTrue(r.has("hash") && r.has("prevHash")));
+        assertFalse(extract.toString().contains("unitCost"), "Aleruan's costs stay out of the package");
+        assertFalse(extract.toString().contains("defaultMarkupPct"));
+        boolean redacted = false;
+        for (JsonNode r : extract) {
+            redacted |= r.path("redacted").asBoolean();
+        }
+        assertTrue(redacted, "the deal's line records are marked as redacted");
+
+        // contract papers are not served through the site-file endpoint
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(web).build();
+        mvc.perform(get("/api/files/" + contract.id())).andExpect(status().isNotFound());
+        mvc.perform(get("/api/deals/" + deal.getId() + "/documents/" + contract.id())).andExpect(status().isOk());
 
         JsonNode manifest = json.readTree(zip.get("manifest.json"));
         assertEquals(deal.getNumber(), manifest.path("deal").path("number").asText());

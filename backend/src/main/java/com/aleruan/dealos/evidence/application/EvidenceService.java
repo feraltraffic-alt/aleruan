@@ -54,7 +54,9 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Collects a deal's evidence from every module, judges its completeness and exports it as one ZIP:
@@ -111,10 +113,11 @@ public class EvidenceService {
     private final CurrentActor actor;
     private final ObjectMapper json;
     private final Clock clock;
+    private final TransactionTemplate readOnly;
 
     EvidenceService(List<EvidenceContributor> contributors, DealCatalog deals, CounterpartyLookup counterparties,
                     AuditService audit, PdfRenderer pdf, CompanyProfile company, CurrentActor actor, ObjectMapper json,
-                    Clock clock) {
+                    Clock clock, PlatformTransactionManager transactions) {
         this.contributors = contributors;
         this.deals = deals;
         this.counterparties = counterparties;
@@ -125,6 +128,8 @@ public class EvidenceService {
         this.json = json.copy().enable(SerializationFeature.INDENT_OUTPUT)
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         this.clock = clock;
+        this.readOnly = new TransactionTemplate(transactions);
+        this.readOnly.setReadOnly(true);
     }
 
     @Transactional(readOnly = true)
@@ -137,9 +142,13 @@ public class EvidenceService {
         return new Overview(info(a), items, a.checks(), score(a.checks()), lastExport(dealId));
     }
 
-    @Transactional
+    /**
+     * Not one transaction: the deal is assembled in a short read-only one, each file is read in its own,
+     * and the export is recorded at the end. So no entities pile up while hundreds of files are packed
+     * and no database connection is held while PDFs render.
+     */
     public Export export(UUID dealId) {
-        Assembled a = assemble(dealId);
+        Assembled a = readOnly.execute(status -> assemble(dealId));
         Path tmp = null;
         try {
             tmp = Files.createTempFile("evidence-", ".zip");
@@ -157,7 +166,7 @@ public class EvidenceService {
                         String path = paths.get(f);
                         byte[] bytes = Objects.requireNonNull(f.content().get(), path);
                         String sha = sha256(bytes);
-                        if (!f.generated()) {
+                        if (!f.generated() && f.sha256() != null) { // stored without a hash: reported on assembly
                             if (sha.equalsIgnoreCase(f.sha256())) {
                                 verified++;
                             } else {
@@ -236,13 +245,17 @@ public class EvidenceService {
             List<AuditRecord> extract = records;
             out.entry(EvidenceEntry.of(EvidenceSection.AUDIT, "audit-log.json")
                     .reference(extract.get(0).seq() + "–" + extract.get(extract.size() - 1).seq())
-                    .file(new EvidenceFile("audit-log.json", "application/json", null, () -> toJson(extract)))
+                    .file(EvidenceFile.generated("audit-log.json", "application/json", () -> toJson(AuditExtract.of(extract))))
                     .build());
         }
 
-        List<EvidenceEntry> entries = out.entries().stream()
+        List<EvidenceEntry> sortedEntries = out.entries().stream()
                 .sorted(Comparator.comparingInt(e -> e.section().ordinal())) // stable: keeps each module's order
                 .toList();
+        Map<EvidenceFile, String> paths = EvidenceLayout.paths(sortedEntries);
+        sortedEntries.stream().flatMap(e -> e.files().stream()).filter(f -> !f.generated() && f.sha256() == null)
+                .forEach(f -> out.warn("FILE_UNHASHED", Map.of("path", paths.get(f))));
+        List<EvidenceEntry> entries = sortedEntries;
         return new Assembled(deal, customer, entries, sorted(out.checks()), records, chain);
     }
 
@@ -294,7 +307,7 @@ public class EvidenceService {
                         .reference(r.requestId())
                         .text(text(r));
                 if (first) {
-                    b.file(new EvidenceFile(file, "application/json", null, () -> toJson(history)));
+                    b.file(EvidenceFile.generated(file, "application/json", () -> toJson(history)));
                     first = false;
                 }
                 out.entry(b.build());

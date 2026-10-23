@@ -43,7 +43,7 @@ class DealEvidence implements EvidenceContributor {
             out.entry(EvidenceEntry.of(EvidenceSection.CONTRACT, f.fileName())
                     .date(f.uploadedAt().atZone(PRAGUE).toLocalDate())
                     .by(f.uploadedBy())
-                    .file(new EvidenceFile(f.fileName(), f.contentType(), f.sha256(), () -> files.data(id)))
+                    .file(EvidenceFile.stored(f.fileName(), f.contentType(), f.sha256(), () -> files.data(id)))
                     .build());
         }
         if (!docs.isEmpty()) {

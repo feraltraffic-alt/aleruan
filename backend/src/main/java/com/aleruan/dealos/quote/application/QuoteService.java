@@ -159,6 +159,15 @@ public class QuoteService {
      */
     @Transactional(readOnly = true)
     public byte[] changeOrderPdf(UUID changeOrderId, DocLanguage requested) {
+        return changeOrderPdf(changeOrderId, requested, null, null);
+    }
+
+    /**
+     * The sheet as it was sent: dated the day it went to the customer and issued by whoever drafted it,
+     * for the evidence package (null date and person mean today and the current user).
+     */
+    @Transactional(readOnly = true)
+    public byte[] changeOrderPdf(UUID changeOrderId, DocLanguage requested, LocalDate issuedOn, String issuedBy) {
         DealCatalog.ChangeOrderSummary co = deals.changeOrder(changeOrderId)
                 .orElseThrow(() -> new NotFoundException("Change order " + changeOrderId + " not found"));
         DealSummary deal = deal(co.dealId());
@@ -169,9 +178,9 @@ public class QuoteService {
                 .map(l -> new QuoteDocument.Line(l.position(), l.description(), l.unit(), l.quantity(), l.unitPrice(), l.total()))
                 .toList();
         QuoteDocument.Amounts amounts = QuoteDocument.amounts(lines, vat.mode(), vat.rate());
-        LocalDate today = LocalDate.now(clock.withZone(PRAGUE));
+        LocalDate today = issuedOn != null ? issuedOn : LocalDate.now(clock.withZone(PRAGUE));
         QuoteDocument document = new QuoteDocument(co.number(), 1, language, today, today.plusDays(defaultValidDays),
-                actor.name(), supplier(), party(customer), co.title() + " (" + deal.title() + ")", deal.siteCountry(),
+                issuedBy != null ? issuedBy : actor.name(), supplier(), party(customer), co.title() + " (" + deal.title() + ")", deal.siteCountry(),
                 deal.currency(), lines, vat.mode(), vat.rate(), amounts.subtotal(), amounts.vatAmount(), amounts.total(),
                 QuoteTexts.vatNote(language, vat.mode(), vat.reason()), null, bank(),
                 new QuoteDocument.ChangeOrder(co.reason(), co.extraDays()));

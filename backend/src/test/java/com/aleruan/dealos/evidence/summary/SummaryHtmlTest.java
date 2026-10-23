@@ -24,12 +24,12 @@ class SummaryHtmlTest {
     static SummaryModel model() {
         EvidenceEntry quote = EvidenceEntry.of(EvidenceSection.QUOTES, "Q-2026-0004/2").date(LocalDate.of(2026, 3, 2))
                 .by("Lena Nováková").amount(new BigDecimal("482300"), "CZK").reference("Q-2026-0004/2")
-                .file(EvidenceFile.pdf("Q-2026-0004-2.pdf", "aa", () -> new byte[0])).build();
+                .file(EvidenceFile.storedPdf("Q-2026-0004-2.pdf", "aa", () -> new byte[0])).build();
         EvidenceEntry protocol = EvidenceEntry.of(EvidenceSection.ACCEPTANCE, "D-2026-0004-P1 Hrubá stavba")
                 .date(LocalDate.of(2026, 6, 10)).by("Ing. Dvořák").status("ACCEPTED_WITH_REMARKS")
                 .amount(new BigDecimal("200000"), "CZK").reference("D-2026-0004-P1")
                 .text("Sokl dočistit.\nChybí revize <hromosvodu> & zábradlí")
-                .file(EvidenceFile.pdf("D-2026-0004-P1.pdf", null, () -> new byte[0])).build();
+                .file(EvidenceFile.generatedPdf("D-2026-0004-P1.pdf", () -> new byte[0])).build();
         EvidenceEntry diary = EvidenceEntry.of(EvidenceSection.DIARY, "").date(LocalDate.of(2026, 6, 1)).by("Petr")
                 .text("Betonáž stropu\u0007 nad 1. NP").build();
         SummaryModel.PackedFile q = new SummaryModel.PackedFile("02-quotes/Q-2026-0004-2.pdf", "a".repeat(64), 10, false);
