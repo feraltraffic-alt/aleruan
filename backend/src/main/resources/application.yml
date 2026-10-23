@@ -41,6 +41,9 @@ dealos:
     swift: ${DEALOS_COMPANY_SWIFT:BPKOPLPW}
   quotes:
     valid-days: 30
+  maps:
+    google-api-key: ${GOOGLE_MAPS_API_KEY:}   # browser key: Maps JavaScript API + Geocoding API, referrer-restricted
+    google-map-id: ${GOOGLE_MAPS_MAP_ID:}     # optional; without it the demo map style is used
   deals:
     margin-warning-pct: ${DEALOS_MARGIN_WARNING_PCT:10}   # warn when the deal margin on price drops below this
   registry:
