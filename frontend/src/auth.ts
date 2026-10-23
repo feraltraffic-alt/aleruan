@@ -16,8 +16,11 @@ const ROLES = ['ADMIN', 'SALES_MANAGER', 'ACCOUNT_MANAGER', 'ACCOUNTANT', 'PROJE
 
 let keycloak: Keycloak | null = null;
 
+/** Pages opened by outside parties through a private link: no Keycloak, the link token is the credential. */
+export const isPublicPath = (path: string) => path.startsWith('/offer/');
+
 export async function initAuth(): Promise<AuthUser | null> {
-  if (!authEnabled) return null;
+  if (!authEnabled || isPublicPath(window.location.pathname)) return null;
   keycloak = new Keycloak({
     url: url!,
     realm: (import.meta.env.VITE_KEYCLOAK_REALM as string | undefined) ?? 'aleruan',

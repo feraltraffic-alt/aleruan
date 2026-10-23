@@ -2,6 +2,7 @@ import type {
   Api, AuditRecord, CheckFinding, CheckResult, CheckRun, CheckStatus, Counterparty, NewCounterparty, WorkType,
 } from './types';
 import { ApiError } from './http';
+import { createDealsMock } from './mockDeals';
 
 /**
  * In-memory API for demos and tests (VITE_USE_MOCKS=true).
@@ -14,15 +15,15 @@ const uid = () => crypto.randomUUID();
 function seed(): Counterparty[] {
   const base = (p: Partial<Counterparty> & Pick<Counterparty, 'legalName' | 'country' | 'roles'>): Counterparty => ({
     id: uid(), companyId: null, vatNumber: null, address: null, email: null, phone: null,
-    checkStatus: null, lastCheckedAt: null, createdAt: '2026-10-01T08:00:00Z', ...p,
+    checkStatus: null, lastCheckedAt: null, createdAt: '2026-10-01T08:00:00Z', workTypes: [], ...p,
   });
   return [
     base({ legalName: 'Stavby Horák s.r.o.', country: 'CZ', companyId: '68599528', vatNumber: 'CZ68599528',
       address: 'Vinohradská 112, 130 00 Praha 3', roles: ['SUBCONTRACTOR'],
-      checkStatus: 'GREEN', lastCheckedAt: '2026-10-22T07:12:00Z' }),
+      workTypes: ['CONSTRUCTION', 'DISMANTLING', 'INTERIOR', 'FINISHING'], checkStatus: 'GREEN', lastCheckedAt: '2026-10-22T07:12:00Z' }),
     base({ legalName: 'Elektro Brno a.s.', country: 'CZ', companyId: '17603137', vatNumber: 'CZ17603137',
       address: 'Křenová 21, 602 00 Brno', roles: ['SUBCONTRACTOR', 'SUPPLIER'],
-      checkStatus: 'YELLOW', lastCheckedAt: '2026-10-21T15:40:00Z' }),
+      workTypes: ['ELECTRICAL', 'INSTALLATION'], checkStatus: 'YELLOW', lastCheckedAt: '2026-10-21T15:40:00Z' }),
     base({ legalName: 'Południe Budowa Sp. z o.o.', country: 'PL', companyId: '2815901396', vatNumber: 'PL2815901396',
       address: 'ul. Długa 5, 31-147 Kraków', roles: ['CUSTOMER'], checkStatus: 'GREEN',
       lastCheckedAt: '2026-10-20T09:05:00Z' }),
@@ -32,7 +33,7 @@ function seed(): Counterparty[] {
       address: 'Industriestraße 4, 46485 Wesel', roles: ['CUSTOMER'], checkStatus: 'RED',
       lastCheckedAt: '2026-10-18T11:30:00Z' }),
     base({ legalName: 'Softline Dev S.R.L.', country: 'MD', companyId: '1009600012345',
-      address: 'str. Ștefan cel Mare 1, Chișinău', roles: ['SUBCONTRACTOR'], checkStatus: 'YELLOW',
+      address: 'str. Ștefan cel Mare 1, Chișinău', roles: ['SUBCONTRACTOR'], workTypes: ['INTERIOR', 'FINISHING'], checkStatus: 'YELLOW',
       lastCheckedAt: '2026-10-15T10:00:00Z' }),
   ];
 }
@@ -77,6 +78,7 @@ export function createMockApi(): Api {
   const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(structuredClone(v)), 150));
 
   return {
+    ...createDealsMock(counterparties, record, delay),
     listCounterparties: (q, role) => {
       const needle = q?.toLowerCase().trim();
       return delay(counterparties
@@ -95,7 +97,7 @@ export function createMockApi(): Api {
       const c: Counterparty = {
         id: uid(), legalName: input.legalName.trim(), country, companyId,
         vatNumber: input.vatNumber?.replace(/\s/g, '').toUpperCase() || null, address: input.address || null,
-        email: input.email || null, phone: input.phone || null, roles: input.roles,
+        email: input.email || null, phone: input.phone || null, roles: input.roles, workTypes: input.workTypes ?? [],
         checkStatus: null, lastCheckedAt: null, createdAt: now(),
       };
       counterparties.push(c);
@@ -149,5 +151,11 @@ export function createMockApi(): Api {
     verifyAudit: () => delay({ valid: true, verifiedRecords: audit.length, brokenAtSeq: null }),
     auditHistory: (type, id) => delay(audit.filter((a) => a.entityType === type && a.entityId === id)),
     workTypes: () => delay(workTypes),
+    setWorkTypes: async (id, codes) => {
+      const c = find(id);
+      c.workTypes = [...new Set(codes)].sort();
+      record('Counterparty', id, 'WORK_TYPES_CHANGED', { workTypes: c.workTypes });
+      return delay(c);
+    },
   };
 }

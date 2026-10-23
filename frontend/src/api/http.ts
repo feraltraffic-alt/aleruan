@@ -1,6 +1,8 @@
 import { accessToken } from '../auth';
 import type { Api, CheckResult, Counterparty, NewCounterparty } from './types';
 
+const json = (method: string, body?: unknown): RequestInit => ({ method, body: body === undefined ? undefined : JSON.stringify(body) });
+
 /** Error with the server's problem detail (RFC 7807) message, ready to show to the user. */
 export class ApiError extends Error {
   readonly status: number;
@@ -60,4 +62,25 @@ export const httpApi: Api = {
   verifyAudit: () => request('/audit/verify'),
   auditHistory: (type, id) => request(`/audit/${type}/${id}`),
   workTypes: () => request('/reference/work-types'),
+  setWorkTypes: (id, workTypes) => request(`/counterparties/${id}/work-types`, json('PUT', { workTypes })),
+
+  listDeals: (q, status) => request(`/deals${qs({ q, status })}`),
+  getDeal: (id) => request(`/deals/${id}`),
+  createDeal: (input) => request('/deals', json('POST', input)),
+  editDeal: (id, patch) => request(`/deals/${id}`, json('PUT', patch)),
+  addLine: (dealId, line) => request(`/deals/${dealId}/lines`, json('POST', line)),
+  updateLine: (dealId, lineId, line) => request(`/deals/${dealId}/lines/${lineId}`, json('PUT', line)),
+  removeLine: (dealId, lineId) => request(`/deals/${dealId}/lines/${lineId}`, json('DELETE')),
+  moveDeal: (id, status) => request(`/deals/${id}/status`, json('POST', { status })),
+
+  dealRfqs: (dealId) => request(`/deals/${dealId}/rfqs`),
+  createRfq: (dealId, input) => request(`/deals/${dealId}/rfqs`, json('POST', input)),
+  getRfq: (id) => request(`/rfqs/${id}`),
+  rfqCandidates: (workType) => request(`/rfqs/candidates${qs({ workType })}`),
+  invite: (rfqId, subcontractorId, allowRisky) => request(`/rfqs/${rfqId}/invitations`, json('POST', { subcontractorId, allowRisky })),
+  award: (rfqId, invitationId) => request(`/rfqs/${rfqId}/award`, json('POST', { invitationId })),
+  cancelRfq: (rfqId) => request(`/rfqs/${rfqId}/cancel`, json('POST')),
+
+  openOffer: (token) => request(`/public/rfq/${token}`),
+  submitOffer: (token, prices, note) => request(`/public/rfq/${token}/offer`, json('POST', { prices, note })),
 };

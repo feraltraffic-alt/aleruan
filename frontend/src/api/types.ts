@@ -10,6 +10,7 @@ export type CheckFinding =
 
 export interface Counterparty {
   id: string;
+  workTypes: string[];
   legalName: string;
   country: string;
   companyId: string | null;
@@ -32,6 +33,7 @@ export interface NewCounterparty {
   email?: string;
   phone?: string;
   roles: CounterpartyRole[];
+  workTypes?: string[];
 }
 
 export interface CheckResult {
@@ -89,6 +91,94 @@ export interface WorkType {
   active: boolean;
 }
 
+export type DealStatus = 'DRAFT' | 'QUOTED' | 'WON' | 'LOST' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type Direction = 'CONSTRUCTION' | 'MARKETING' | 'IT' | 'CONSULTING' | 'LOGISTICS' | 'TRADE';
+export type LineKind = 'WORK' | 'MATERIAL' | 'SERVICE' | 'GOODS' | 'DELIVERY';
+export type DealWarning = 'CUSTOMER_RED' | 'SUBCONTRACTOR_RED' | 'LINE_BELOW_COST' | 'MARGIN_BELOW_THRESHOLD';
+
+export interface PartyRef { id: string; legalName: string; checkStatus: CheckStatus | null }
+
+export interface DealTotals { cost: number; price: number; margin: number; marginPct: number | null; markupPct: number | null }
+
+export interface DealLine {
+  id: string;
+  position: number;
+  kind: LineKind;
+  description: string;
+  workType: string | null;
+  unit: string | null;
+  quantity: number;
+  unitCost: number;
+  markupPct: number | null;
+  markupFromDeal: boolean;
+  fixedUnitPrice: number | null;
+  unitPrice: number;
+  costTotal: number;
+  priceTotal: number;
+  margin: number;
+  subcontractor: PartyRef | null;
+}
+
+export interface Deal {
+  id: string;
+  number: string;
+  title: string;
+  status: DealStatus;
+  nextStatuses: DealStatus[];
+  direction: Direction;
+  siteCountry: string | null;
+  currency: string;
+  defaultMarkupPct: number;
+  pricesEditable: boolean;
+  customer: PartyRef | null;
+  manager: string | null;
+  notes: string | null;
+  createdAt: string;
+  lines: DealLine[];
+  totals: DealTotals;
+  warnings: DealWarning[];
+}
+
+export interface DealListItem {
+  id: string; number: string; title: string; status: DealStatus; direction: Direction; currency: string;
+  customer: PartyRef | null; totals: DealTotals; createdAt: string;
+}
+
+export interface NewDeal {
+  title: string; customerId: string; direction: Direction; siteCountry?: string; currency: string; defaultMarkupPct: number;
+}
+
+export interface LineData {
+  kind: LineKind; description: string; workType?: string | null; unit?: string | null; quantity: number; unitCost: number;
+  markupPct?: number | null; fixedUnitPrice?: number | null; subcontractorId?: string | null;
+}
+
+export type RfqStatus = 'OPEN' | 'AWARDED' | 'CANCELLED';
+
+export interface Candidate { id: string; legalName: string; country: string; checkStatus: CheckStatus | null; workTypes: string[] }
+
+export interface RfqItem {
+  id: string; dealLineId: string; description: string; unit: string | null; quantity: number; workType: string | null;
+  cheapestInvitationId: string | null;
+}
+
+export interface RfqInvitation {
+  id: string; subcontractor: Candidate; invitedAt: string; viewedAt: string | null; offerSubmittedAt: string | null;
+  offerNote: string | null; prices: Record<string, number>; total: number | null; complete: boolean;
+}
+
+export interface Rfq {
+  id: string; dealId: string; dealNumber: string | null; currency: string | null; title: string; deadline: string | null;
+  status: RfqStatus; awardedInvitationId: string | null; cheapestInvitationId: string | null;
+  items: RfqItem[]; invitations: RfqInvitation[];
+}
+
+export interface OfferPage {
+  title: string; invitedCompany: string; currency: string | null; deadline: string | null; open: boolean;
+  items: { id: string; description: string; unit: string | null; quantity: number }[];
+  myPrices: Record<string, number>; myNote: string | null; submittedAt: string | null;
+}
+
 export interface Api {
   listCounterparties(q?: string, role?: CounterpartyRole): Promise<Counterparty[]>;
   getCounterparty(id: string): Promise<Counterparty>;
@@ -100,4 +190,25 @@ export interface Api {
   verifyAudit(): Promise<ChainVerification>;
   auditHistory(entityType: string, entityId: string): Promise<AuditRecord[]>;
   workTypes(): Promise<WorkType[]>;
+  setWorkTypes(id: string, workTypes: string[]): Promise<Counterparty>;
+
+  listDeals(q?: string, status?: DealStatus): Promise<DealListItem[]>;
+  getDeal(id: string): Promise<Deal>;
+  createDeal(input: NewDeal): Promise<Deal>;
+  editDeal(id: string, patch: { title?: string; defaultMarkupPct?: number; siteCountry?: string | null; notes?: string | null }): Promise<Deal>;
+  addLine(dealId: string, line: LineData): Promise<Deal>;
+  updateLine(dealId: string, lineId: string, line: LineData): Promise<Deal>;
+  removeLine(dealId: string, lineId: string): Promise<Deal>;
+  moveDeal(id: string, status: DealStatus): Promise<Deal>;
+
+  dealRfqs(dealId: string): Promise<Rfq[]>;
+  createRfq(dealId: string, input: { title?: string; deadline?: string | null; lineIds: string[] }): Promise<Rfq>;
+  getRfq(id: string): Promise<Rfq>;
+  rfqCandidates(workType?: string): Promise<Candidate[]>;
+  invite(rfqId: string, subcontractorId: string, allowRisky: boolean): Promise<{ invitation: RfqInvitation; offerPath: string }>;
+  award(rfqId: string, invitationId: string): Promise<Rfq>;
+  cancelRfq(rfqId: string): Promise<Rfq>;
+
+  openOffer(token: string): Promise<OfferPage>;
+  submitOffer(token: string, prices: Record<string, number>, note: string): Promise<OfferPage>;
 }

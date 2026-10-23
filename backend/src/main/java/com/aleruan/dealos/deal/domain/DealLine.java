@@ -88,6 +88,12 @@ public class DealLine {
         this.subcontractorId = subcontractorId;
     }
 
+    void pinUnitPrice(BigDecimal unitPrice) {
+        if (fixedUnitPrice == null) {
+            this.fixedUnitPrice = unitPrice;
+        }
+    }
+
     void assignCost(BigDecimal unitCost, UUID subcontractorId) {
         if (unitCost == null || unitCost.signum() < 0) {
             throw new IllegalArgumentException("Unit cost must be zero or positive");

@@ -27,6 +27,8 @@ dealos:
     enabled: true
   sanctions:
     url: ${DEALOS_SANCTIONS_URL:}   # EU FSF XML link with your personal token; empty = disabled
+  deals:
+    margin-warning-pct: ${DEALOS_MARGIN_WARNING_PCT:10}   # warn when the deal margin on price drops below this
   registry:
     timeout: 5s
     vies:

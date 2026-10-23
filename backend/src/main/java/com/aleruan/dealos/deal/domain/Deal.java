@@ -130,7 +130,12 @@ public class Deal {
     /** Result of a tender: the winning subcontractor and their unit cost. Selling price is not touched. */
     public void assignCost(UUID lineId, BigDecimal unitCost, UUID subcontractorId) {
         requireCostChangesAllowed();
-        line(lineId).assignCost(unitCost, subcontractorId);
+        DealLine line = line(lineId);
+        if (!status.allowsPriceChanges()) {
+            // the customer price is agreed: pin it before the cost moves, so only the margin changes
+            line.pinUnitPrice(DealPricing.price(line.pricingInput(), defaultMarkupPct).unitPrice());
+        }
+        line.assignCost(unitCost, subcontractorId);
     }
 
     public void moveTo(DealStatus target) {

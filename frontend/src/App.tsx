@@ -5,15 +5,23 @@ import { AuditPage } from './pages/Audit';
 import { CounterpartiesPage } from './pages/Counterparties';
 import { CounterpartyDetailPage } from './pages/CounterpartyDetail';
 import { DashboardPage } from './pages/Dashboard';
+import { DealDetailPage } from './pages/DealDetail';
+import { DealsPage } from './pages/Deals';
+import { OfferPageView } from './pages/Offer';
+import { RfqDetailPage } from './pages/RfqDetail';
 import { ReferencePage } from './pages/Reference';
 
 export function AppRoutes() {
   return (
     <Routes>
+      <Route path="offer/:token" element={<OfferPageView />} />
       <Route element={<Layout />}>
         <Route index element={<DashboardPage />} />
         <Route path="counterparties" element={<CounterpartiesPage />} />
         <Route path="counterparties/:id" element={<CounterpartyDetailPage />} />
+        <Route path="deals" element={<DealsPage />} />
+        <Route path="deals/:id" element={<DealDetailPage />} />
+        <Route path="rfqs/:id" element={<RfqDetailPage />} />
         <Route path="audit" element={<AuditPage />} />
         <Route path="reference" element={<ReferencePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

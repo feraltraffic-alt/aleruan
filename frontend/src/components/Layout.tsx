@@ -5,9 +5,10 @@ import { LANGS, useI18n, type MessageKey } from '../i18n';
 
 const LIVE: { to: string; key: MessageKey }[] = [
   { to: '/', key: 'nav.dashboard' },
+  { to: '/deals', key: 'nav.deals' },
   { to: '/counterparties', key: 'nav.counterparties' },
 ];
-const UPCOMING: MessageKey[] = ['nav.deals', 'nav.projects', 'nav.invoices', 'nav.warehouse'];
+const UPCOMING: MessageKey[] = ['nav.projects', 'nav.invoices', 'nav.warehouse'];
 const SYSTEM: { to: string; key: MessageKey }[] = [
   { to: '/audit', key: 'nav.audit' },
   { to: '/reference', key: 'nav.reference' },

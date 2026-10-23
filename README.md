@@ -37,6 +37,7 @@ cd frontend && npm install && npm run dev
 | `DB_URL`, `DB_USER`, `DB_PASSWORD` | бэкенд | PostgreSQL |
 | `KEYCLOAK_ISSUER` | бэкенд | Issuer Keycloak, например `http://localhost:8180/realms/aleruan` |
 | `DEALOS_SANCTIONS_URL` | бэкенд | Ссылка на XML санкционного списка ЕС с личным токеном FSF (бесплатная регистрация на webgate.ec.europa.eu/fsd/fsf). Пусто — проверка по санкциям выключена |
+| `DEALOS_MARGIN_WARNING_PCT` | бэкенд | Порог маржи сделки (% от цены), ниже которого показывается предупреждение. По умолчанию 10 |
 | `VITE_KEYCLOAK_URL` | фронтенд | Включает вход через Keycloak, например `http://localhost:8180` |
 | `VITE_KEYCLOAK_REALM`, `VITE_KEYCLOAK_CLIENT` | фронтенд | По умолчанию `aleruan` и `dealos-web` |
 | `VITE_USE_MOCKS=true` | фронтенд | Демо-режим без бэкенда |
