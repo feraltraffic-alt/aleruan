@@ -25,6 +25,8 @@ spring:
 dealos:
   security:
     enabled: true
+  sanctions:
+    url: ${DEALOS_SANCTIONS_URL:}   # EU FSF XML link with your personal token; empty = disabled
   registry:
     timeout: 5s
     vies:
