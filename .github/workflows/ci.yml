@@ -13,14 +13,27 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
           cache: maven
       - name: Build and test (unit, integration with Testcontainers, module boundaries)
-        run: mvn -B -ntp verify
+        run: |
+          set -o pipefail
+          mvn -B -ntp verify 2>&1 | tee build.log
+      - name: Report build errors as annotations
+        if: failure()
+        run: |
+          # Job logs live on blob storage; annotations are readable through the plain GitHub API.
+          grep -E "^\[ERROR\]|Tests run:.*(Failures: [1-9]|Errors: [1-9])|Caused by|<<< FAIL" build.log \
+            | grep -v "^\[ERROR\] *$" | head -200 > errors.txt || true
+          split -l 20 errors.txt chunk_
+          for f in chunk_*; do
+            msg=$(sed 's/%/%25/g' "$f" | awk '{printf "%s%%0A", $0}')
+            echo "::error title=Maven build::${msg}"
+          done
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4
@@ -35,8 +48,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
