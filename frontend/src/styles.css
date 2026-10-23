@@ -479,3 +479,38 @@ button.cell { cursor: pointer; }
 .pill.df-CLOSED { background: var(--ok-bg); color: var(--ok); }
 .pill.df-DISMISSED { background: #eeedf0; color: var(--none); }
 @media (max-width: 900px) { .defects { grid-template-columns: 1fr; } }
+
+/* ---------- invoices ---------- */
+.pill.inv-DRAFT { background: #efecf3; color: #4a4356; }
+.pill.inv-ISSUED { background: #e9e2f3; color: var(--aubergine); }
+.pill.inv-PAID { background: var(--ok-bg); color: var(--ok); }
+.pill.inv-CREDITED { background: #eeedf0; color: var(--none); }
+.pill.inv-OVERDUE { background: var(--risk-bg); color: var(--risk); }
+.owed { display: flex; gap: 32px; padding: 16px 22px; margin-bottom: 16px; flex-wrap: wrap; }
+.owed div, .inv-position div { display: flex; flex-direction: column; }
+.owed span, .inv-position span { font-size: 13px; color: var(--muted); }
+.owed b { font: 600 24px/1.2 var(--font-cond); color: var(--aubergine); }
+.inv-position { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px 20px; padding: 16px 22px; margin-bottom: 12px; }
+.inv-position b { font: 600 19px/1.3 var(--font-cond); }
+.ready { padding: 14px 22px; margin-bottom: 12px; border-left: 4px solid var(--gold); }
+.ready h3 { font: 600 15px/1.3 var(--font-cond); margin: 0 0 6px; }
+.ready .moves { align-items: center; }
+.grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0 12px; }
+.grid4 .input, .grid4 .select { width: 100%; }
+.inv-lines td { vertical-align: middle; padding: 6px 10px; }
+.inv-lines .input.wide { width: 100%; min-width: 220px; }
+.inv-lines .num-in { width: 110px; text-align: right; }
+.inv-lines .unit-in { width: 70px; }
+.add-line { padding: 10px 14px; border-top: 1px solid var(--line); }
+.inv-totals { margin: 14px 0 0 auto; width: min(360px, 100%); }
+.inv-totals div { display: flex; justify-content: space-between; padding: 4px 0; }
+.inv-totals dt { color: var(--muted); }
+.inv-totals dd { margin: 0; text-align: right; }
+.inv-totals .grand { border-top: 1px solid var(--aubergine); margin-top: 4px; padding-top: 8px; }
+.inv-totals .grand dt, .inv-totals .grand dd { font: 600 19px/1.3 var(--font-cond); color: var(--aubergine); }
+.errs { margin: 0 0 12px; padding-left: 28px; }
+.page-actions { margin: -8px 0 16px; }
+.pay-form { margin-top: 20px; }
+.wip { max-width: 680px; }
+.wip p { margin: 12px 0 0; }
+@media (max-width: 900px) { .inv-position { grid-template-columns: 1fr 1fr; } }

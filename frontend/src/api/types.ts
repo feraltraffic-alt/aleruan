@@ -291,6 +291,44 @@ export interface StageDecision {
   decision: 'ACCEPTED' | 'ACCEPTED_WITH_REMARKS' | 'REJECTED'; by: string; remarks: string | null; fixUntil: string | null;
 }
 
+export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'CREDITED';
+export type InvoiceKind = 'INVOICE' | 'CREDIT_NOTE';
+export type DocLanguage = 'CS' | 'EN' | 'PL' | 'DE';
+export type InvoiceSource = 'STAGE' | 'DEAL_LINES' | 'EMPTY';
+
+export interface InvoiceLine {
+  id?: string; position?: number; description: string; unit: string | null; quantity: number; unitPrice: number;
+  total?: number; stageId: string | null;
+}
+
+export interface Invoice {
+  id: string; dealId: string; dealNumber: string | null; dealTitle: string | null;
+  customer: { id: string; legalName: string; country: string; checkStatus: CheckStatus | null } | null;
+  kind: InvoiceKind; status: InvoiceStatus; number: string | null; variableSymbol: string | null; creditOfId: string | null;
+  language: DocLanguage; currency: string; vatMode: VatMode; vatRate: number; issueDate: string | null; taxableDate: string;
+  dueDate: string; subtotal: number; vatAmount: number; total: number; exchangeRate: number | null; rateDate: string | null;
+  vatAmountCzk: number | null; note: string | null; paidAmount: number; paidOn: string | null; overdue: boolean;
+  pdfSha256: string | null; createdAt: string; createdBy: string | null; issuedAt: string | null; issuedBy: string | null;
+  lines: InvoiceLine[];
+}
+
+export interface InvoiceEdit {
+  language: DocLanguage; vatMode: VatMode; vatRate: number; taxableDate: string; dueDate: string; note: string | null;
+  lines: InvoiceLine[];
+}
+
+export interface InvoiceFilter { status?: InvoiceStatus; dealId?: string; customerId?: string; overdue?: boolean }
+
+export interface AcceptedStage {
+  id: string; siteId: string; dealId: string; seq: number; title: string; amount: number; acceptedAt: string | null;
+  acceptedBy: string | null; withRemarks: boolean;
+}
+
+export interface DealInvoicing {
+  contractValue: number; invoiced: number; paid: number; outstanding: number; remaining: number; currency: string;
+  stages: { stage: AcceptedStage; invoiced: boolean }[];
+}
+
 export interface Api {
   listCounterparties(q?: string, role?: CounterpartyRole): Promise<Counterparty[]>;
   getCounterparty(id: string): Promise<Counterparty>;
@@ -371,6 +409,17 @@ export interface Api {
   uploadPhoto(owner: PhotoOwner, ownerId: string, file: Blob, fileName: string): Promise<FileRef>;
   removePhoto(owner: PhotoOwner, ownerId: string, fileId: string): Promise<void>;
   fileBlob(id: string): Promise<Blob>;
+
+  listInvoices(filter?: InvoiceFilter): Promise<Invoice[]>;
+  getInvoice(id: string): Promise<Invoice>;
+  dealInvoicing(dealId: string): Promise<DealInvoicing>;
+  draftInvoice(dealId: string, source: InvoiceSource, stageId?: string): Promise<Invoice>;
+  editInvoice(id: string, data: InvoiceEdit): Promise<Invoice>;
+  deleteInvoice(id: string): Promise<void>;
+  issueInvoice(id: string, exchangeRate?: number | null): Promise<Invoice>;
+  payInvoice(id: string, amount: number, paidOn: string): Promise<Invoice>;
+  creditInvoice(id: string, reason: string): Promise<Invoice>;
+  invoiceFile(id: string): Promise<Blob>;
 
   openOffer(token: string): Promise<OfferPage>;
   submitOffer(token: string, prices: Record<string, number>, note: string): Promise<OfferPage>;

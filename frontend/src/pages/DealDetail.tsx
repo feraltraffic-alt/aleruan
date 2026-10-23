@@ -13,6 +13,7 @@ import { parseNum } from '../numbers';
 import { LineForm } from './LineForm';
 import { QuotesSection } from './Quotes';
 import { DealSite } from '../components/DealSite';
+import { DealInvoicing } from '../components/DealInvoicing';
 import { ChangeOrdersSection } from './ChangeOrders';
 
 /** Moves that end the deal ask for a second click. */
@@ -200,6 +201,7 @@ export function DealDetailPage() {
       </section>
 
       <QuotesSection deal={d} onIssued={deal.reload} />
+      <DealInvoicing deal={d} />
 
       <ChangeOrdersSection deal={d} />
 

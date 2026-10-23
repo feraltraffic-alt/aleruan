@@ -11,7 +11,7 @@
 | 5 | Ссылка с токеном на XML санкционного списка ЕС (FSF) | Бесплатная регистрация на webgate.ec.europa.eu/fsd/fsf | Клиент (на Aleruan) | `DEALOS_SANCTIONS_URL` | нужно |
 | 6 | JWT-токен CEIDG (польские ИП) | dane.biznes.gov.pl, регистрация | Клиент | будет добавлено в конфиг вместе с адаптером CEIDG | позже |
 | 7 | Почтовый ящик / SMTP для рассылки приглашений исполнителям и уведомлений | Почтовый провайдер клиента | Клиент | будет добавлено с модулем уведомлений | позже |
-| 8 | Образец файла импорта Money S4 от бухгалтера | Бухгалтер клиента | Клиент (через Лену) | Модуль фактур | позже |
+| 8 | Образец файла импорта Money S4 от бухгалтера (экспорт фактур и оплат; страница экспорта пока «в разработке») | Бухгалтер клиента | Клиент (через Лену) | Модуль фактур → Экспорт в Money S4 | нужно |
 | 10 | Контакты в шапке КП: email, телефон, сайт Aleruan (и подтверждение банка/IBAN для КП) | Лена | Клиент | `DEALOS_COMPANY_EMAIL`, `DEALOS_COMPANY_PHONE`, `DEALOS_COMPANY_WEB`, `DEALOS_COMPANY_IBAN` | нужно |
 | 11 | Ключ Google Maps (браузерный) для карты объектов и поиска адреса | console.cloud.google.com → новый проект → включить **Maps JavaScript API** и **Geocoding API** → Credentials → Create API key → ограничить: Application restrictions = Websites (домен системы), API restrictions = эти два API. Нужна привязанная карта оплаты (у Google есть бесплатный ежемесячный лимит) | Клиент (аккаунт Google на Aleruan) | `GOOGLE_MAPS_API_KEY` на сервере, пересборка не нужна | нужно |
 | 12 | Map ID для своего стиля карты | Google Cloud → Map Management → Create Map ID (JavaScript, Vector) | Клиент | `GOOGLE_MAPS_MAP_ID` | по желанию |

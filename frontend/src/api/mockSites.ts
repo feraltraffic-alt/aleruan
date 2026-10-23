@@ -1,5 +1,5 @@
 import type {
-  Api, Counterparty, DealStatus, Defect, DefectData, DefectSeverity, DefectStatus, DiaryData, DiaryEntry, FileRef, Site,
+  AcceptedStage, Api, Counterparty, DealStatus, Defect, DefectData, DefectSeverity, DefectStatus, DiaryData, DiaryEntry, FileRef, Site,
   SiteParty, SiteTask, Stage, StageStatus, TaskData, WorkloadRow,
 } from './types';
 import { ApiError } from './http';
@@ -42,7 +42,8 @@ export function createSitesMock(
   counterparties: Counterparty[], deals: DealAccess,
   record: (type: string, id: string, action: string, payload: unknown) => void,
   delay: <T>(v: T) => Promise<T>,
-): SitesApi & { seed(dealId: string, s: Partial<StoredSite>, tasks: Omit<StoredTask, 'id' | 'position'>[]): void } {
+): SitesApi & { seed(dealId: string, s: Partial<StoredSite>, tasks: Omit<StoredTask, 'id' | 'position'>[]): void;
+  acceptedStages(dealId: string): AcceptedStage[] } {
   const sites: StoredSite[] = [];
   const stages: Stage[] = [];
   const today = localToday;
@@ -137,6 +138,13 @@ export function createSitesMock(
   const nextPos = (s: StoredSite) => s.tasks.reduce((m, t) => Math.max(m, t.position), 0) + 1;
 
   return {
+    acceptedStages: (dealId) => {
+      const site = sites.find((x) => x.dealId === dealId);
+      if (!site) return [];
+      return stages.filter((x) => x.siteId === site.id && (x.status === 'ACCEPTED' || x.status === 'ACCEPTED_WITH_REMARKS'))
+        .sort((a, b) => a.seq - b.seq).map((x) => ({ id: x.id, siteId: x.siteId, dealId, seq: x.seq, title: x.title,
+          amount: x.amount, acceptedAt: x.decidedAt, acceptedBy: x.decidedBy, withRemarks: x.status === 'ACCEPTED_WITH_REMARKS' }));
+    },
     seed(dealId, s, tasks) {
       const deal = deals.find(dealId)!;
       const site: StoredSite = {

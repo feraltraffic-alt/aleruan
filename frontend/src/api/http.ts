@@ -161,6 +161,22 @@ export const httpApi: Api = {
     return res.blob();
   },
 
+  listInvoices: (f = {}) => request(`/invoices${qs({ status: f.status, dealId: f.dealId, customerId: f.customerId,
+    overdue: f.overdue ? 'true' : undefined })}`),
+  getInvoice: (id) => request(`/invoices/${id}`),
+  dealInvoicing: (dealId) => request(`/deals/${dealId}/invoicing`),
+  draftInvoice: (dealId, source, stageId) => request(`/deals/${dealId}/invoices`, json('POST', { source, stageId })),
+  editInvoice: (id, data) => request(`/invoices/${id}`, json('PUT', data)),
+  deleteInvoice: (id) => request(`/invoices/${id}`, json('DELETE')),
+  issueInvoice: (id, exchangeRate) => request(`/invoices/${id}/issue`, json('POST', { exchangeRate: exchangeRate ?? null })),
+  payInvoice: (id, amount, paidOn) => request(`/invoices/${id}/payments`, json('POST', { amount, paidOn })),
+  creditInvoice: (id, reason) => request(`/invoices/${id}/credit`, json('POST', { reason })),
+  invoiceFile: async (id) => {
+    const res = await fetch(`/api/invoices/${id}/pdf`, { headers: await authHeaders() });
+    if (!res.ok) throw new ApiError(res.status, res.statusText);
+    return res.blob();
+  },
+
   openOffer: (token) => request(`/public/rfq/${token}`),
   submitOffer: (token, prices, note) => request(`/public/rfq/${token}/offer`, json('POST', { prices, note })),
 };

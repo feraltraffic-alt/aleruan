@@ -7,6 +7,7 @@ import { priceLine, totals } from '../pricing';
 import { languageFor, suggestVat, vatAmount } from '../vat';
 import { addDays, localToday, mondayOf } from '../dates';
 import { createSitesMock, type SitesApi } from './mockSites';
+import { createInvoicesMock, type InvoicesApi } from './mockInvoices';
 
 /** Deals and tenders for the demo API; mirrors the backend rules that the UI relies on. */
 
@@ -55,7 +56,7 @@ export function createDealsMock(
   counterparties: Counterparty[],
   record: (type: string, id: string, action: string, payload: unknown) => void,
   delay: <T>(v: T) => Promise<T>,
-): DealsApi & SitesApi {
+): DealsApi & SitesApi & InvoicesApi {
   const deals: StoredDeal[] = [];
   const rfqs: StoredRfq[] = [];
   const quotes: (Quote & { dealId: string; html: string })[] = [];
@@ -316,10 +317,36 @@ export function createDealsMock(
         start: addDays(mon, 7), end: addDays(mon, 11), progressPct: 0 },
     ]);
   }
-  const { seed: _seed, ...sitesApi } = sitesMock;
+  const invoicesMock = createInvoicesMock(counterparties, {
+    deal: (id) => {
+      const d = deals.find((x) => x.id === id);
+      return d && { id: d.id, number: d.number, title: d.title, currency: d.currency, status: d.status,
+        customerId: d.customerId, siteCountry: d.siteCountry, direction: d.direction };
+    },
+    contractValue: (id) => contract(findDeal(id)).total.price,
+    customerLines: (id) => {
+      const d = findDeal(id);
+      const approved = cos.filter((c) => c.dealId === id && c.status === 'APPROVED').flatMap((c) => c.lines);
+      return [...d.lines, ...approved].map((l) => ({ description: l.description, unit: l.unit ?? null,
+        quantity: l.quantity, unitPrice: priced(d, l).unitPrice }));
+    },
+    acceptedStages: (dealId) => sitesMock.acceptedStages(dealId),
+  }, record, delay);
+  // An older paid invoice and an overdue one, so the invoice list has history.
+  const wesel = deals.find((d) => d.title === 'Fasáda, Wesel');
+  const gliwice = deals.find((d) => d.title === 'Hala magazynowa, Gliwice');
+  if (wesel && gliwice) {
+    invoicesMock.seedIssued(gliwice.id, [{ description: 'Záloha: montáž ocelové konstrukce', unit: null, quantity: 1,
+      unitPrice: 12000, stageId: null }], 40, true);
+    invoicesMock.seedIssued(wesel.id, [{ description: 'Lešení a příprava podkladu', unit: 'kpl', quantity: 1,
+      unitPrice: 3400, stageId: null }], 21, false);
+  }
+  const { seed: _seed, acceptedStages: _stages, ...sitesApi } = sitesMock;
+  const { seedIssued: _seedIssued, ...invoicesApi } = invoicesMock;
 
   return {
     ...sitesApi,
+    ...invoicesApi,
     listDeals: (q, status) => {
       const needle = q?.toLowerCase().trim();
       return delay(deals
