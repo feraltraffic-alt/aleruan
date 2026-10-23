@@ -121,6 +121,18 @@ export const httpApi: Api = {
     return res.blob();
   },
 
+  stages: (siteId) => request(`/sites/${siteId}/stages`),
+  createStage: (siteId, data) => request(`/sites/${siteId}/stages`, json('POST', data)),
+  editStage: (id, data) => request(`/stages/${id}`, json('PUT', data)),
+  removeStage: (id) => request(`/stages/${id}`, json('DELETE')),
+  stageAction: (id, action) => request(`/stages/${id}/${action}`, json('POST')),
+  decideStage: (id, decision) => request(`/stages/${id}/decision`, json('POST', decision)),
+  protocolFile: async (id) => {
+    const res = await fetch(`/api/stages/${id}/protocol`, { headers: await authHeaders() });
+    if (!res.ok) throw new ApiError(res.status, res.statusText);
+    return res.blob();
+  },
+
   openOffer: (token) => request(`/public/rfq/${token}`),
   submitOffer: (token, prices, note) => request(`/public/rfq/${token}/offer`, json('POST', { prices, note })),
 };

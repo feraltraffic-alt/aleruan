@@ -251,6 +251,22 @@ export interface WorkloadRow {
   weeks: { monday: string; parallelTasks: number }[];
 }
 
+export type StageStatus = 'PLANNED' | 'SUBMITTED' | 'ACCEPTED' | 'ACCEPTED_WITH_REMARKS' | 'REJECTED';
+
+export interface Stage {
+  id: string; siteId: string; seq: number; title: string; description: string | null; amount: number;
+  plannedDate: string | null; status: StageStatus; nextStatuses: StageStatus[]; submittedAt: string | null;
+  decidedAt: string | null; decidedBy: string | null; remarks: string | null; fixUntil: string | null; taskIds: string[];
+}
+
+export interface StageData { title: string; description: string | null; amount: number; plannedDate: string | null; taskIds: string[] }
+
+export interface Coverage { contractValue: number; planned: number; accepted: number; unassigned: number; currency: string | null }
+
+export interface StageDecision {
+  decision: 'ACCEPTED' | 'ACCEPTED_WITH_REMARKS' | 'REJECTED'; by: string; remarks: string | null; fixUntil: string | null;
+}
+
 export interface Api {
   listCounterparties(q?: string, role?: CounterpartyRole): Promise<Counterparty[]>;
   getCounterparty(id: string): Promise<Counterparty>;
@@ -309,6 +325,15 @@ export interface Api {
   decideChangeOrder(id: string, decision: 'approve' | 'reject', by: string, note: string | null): Promise<ChangeOrder>;
   /** Sheet for the customer to sign (PDF; HTML stand-in in demo mode). */
   changeOrderFile(id: string): Promise<Blob>;
+
+  stages(siteId: string): Promise<{ stages: Stage[]; coverage: Coverage }>;
+  createStage(siteId: string, data: StageData): Promise<Stage>;
+  editStage(id: string, data: StageData): Promise<Stage>;
+  removeStage(id: string): Promise<void>;
+  stageAction(id: string, action: 'submit' | 'withdraw'): Promise<Stage>;
+  decideStage(id: string, decision: StageDecision): Promise<Stage>;
+  /** Handover protocol (PDF; HTML stand-in in demo mode). */
+  protocolFile(id: string): Promise<Blob>;
 
   openOffer(token: string): Promise<OfferPage>;
   submitOffer(token: string, prices: Record<string, number>, note: string): Promise<OfferPage>;

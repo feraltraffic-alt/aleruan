@@ -14,6 +14,7 @@ import { useLoad } from '../components/useLoad';
 import { localToday } from '../dates';
 import { useI18n } from '../i18n';
 import { parseNum } from '../numbers';
+import { StagesSection } from './Stages';
 
 export function SiteDetailPage() {
   const { id = '' } = useParams();
@@ -118,6 +119,8 @@ export function SiteDetailPage() {
           )}
         </div>
       </section>
+
+      <StagesSection site={s} />
 
       {editing && <SiteForm site={s} onClose={() => setEditing(false)} onSaved={(n) => { site.setData(n); setEditing(false); }} />}
       {task && <TaskForm site={s} task={task === 'new' ? undefined : task} onClose={() => setTask(null)}

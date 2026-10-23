@@ -404,3 +404,18 @@ button.cell { cursor: pointer; }
 .pill.c-SENT { background: #fbf1d9; color: var(--gold-ink); }
 .pill.c-APPROVED { background: var(--ok-bg); color: var(--ok); }
 .pill.c-REJECTED, .pill.c-CANCELLED { background: #eeedf0; color: var(--none); }
+
+/* ---------- acceptance stages ---------- */
+.coverage { padding: 16px 18px 12px; border-bottom: 1px solid var(--line); }
+.coverage-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: #ece9f0; }
+.coverage-bar .acc { background: var(--ok); }
+.coverage-bar .plan { background: var(--aubergine-3); }
+.coverage-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 8px; font-size: 13.5px; }
+.coverage-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+.coverage-legend i.acc { background: var(--ok); } .coverage-legend i.plan { background: var(--aubergine-3); }
+.pill.st-PLANNED { background: #efecf3; color: #4a4356; }
+.pill.st-SUBMITTED { background: #fbf1d9; color: var(--gold-ink); }
+.pill.st-ACCEPTED { background: var(--ok-bg); color: var(--ok); }
+.pill.st-ACCEPTED_WITH_REMARKS { background: #e8f1e2; color: #4b6a1f; }
+.pill.st-REJECTED { background: var(--risk-bg); color: var(--risk); }
+.share { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin: -4px 0 14px; font-size: 14px; }

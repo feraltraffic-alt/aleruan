@@ -44,7 +44,8 @@ public class AcceptanceService {
     }
 
     /** How the stages cover the contract: planned, accepted and what is not yet assigned to any stage. */
-    public record Coverage(BigDecimal contractValue, BigDecimal planned, BigDecimal accepted, BigDecimal unassigned) {
+    public record Coverage(BigDecimal contractValue, BigDecimal planned, BigDecimal accepted, BigDecimal unassigned,
+                           String currency) {
     }
 
     private final AcceptanceStageRepository stages;
@@ -85,7 +86,8 @@ public class AcceptanceService {
         BigDecimal planned = all.stream().map(AcceptanceStage::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal accepted = all.stream().filter(s -> s.getStatus().isAccepted()).map(AcceptanceStage::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        return new Coverage(contract, planned, accepted, contract.subtract(planned));
+        String currency = deals.find(site.getDealId()).map(DealSummary::currency).orElse(null);
+        return new Coverage(contract, planned, accepted, contract.subtract(planned), currency);
     }
 
     @Transactional

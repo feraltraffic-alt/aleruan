@@ -269,7 +269,11 @@ export function createDealsMock(
     d.status = 'QUOTED';
   }
 
-  const sitesMock = createSitesMock(counterparties, { find: (id) => deals.find((x) => x.id === id) }, record, delay);
+  const sitesMock = createSitesMock(counterparties, {
+    find: (id) => deals.find((x) => x.id === id),
+    contractValue: (id) => contract(findDeal(id)).total.price,
+    currency: (id) => findDeal(id).currency,
+  }, record, delay);
 
   // Two won deals with sites, scheduled around today, so the map, schedule and workload have something to show.
   const rhein = counterparties.find((c) => c.legalName.startsWith('Montage Rhein'));

@@ -1,16 +1,26 @@
-import type { Api, Counterparty, DealStatus, Site, SiteParty, SiteTask, TaskData, WorkloadRow } from './types';
+import type {
+  Api, Counterparty, DealStatus, Site, SiteParty, SiteTask, Stage, StageStatus, TaskData, WorkloadRow,
+} from './types';
 import { ApiError } from './http';
 import { addDays, daysInclusive, localToday, mondayOf } from '../dates';
 
 /** Sites, schedules and workload for the demo API; mirrors the backend's SiteService rules. */
 
 export type SitesApi = Pick<Api, 'config' | 'listSites' | 'getSite' | 'createSite' | 'editSite' | 'addTask'
-  | 'updateTask' | 'removeTask' | 'tasksFromDeal' | 'workload'>;
+  | 'updateTask' | 'removeTask' | 'tasksFromDeal' | 'workload' | 'stages' | 'createStage' | 'editStage' | 'removeStage'
+  | 'stageAction' | 'decideStage' | 'protocolFile'>;
+
+const STAGE_NEXT: Record<StageStatus, StageStatus[]> = {
+  PLANNED: ['SUBMITTED'], SUBMITTED: ['ACCEPTED', 'ACCEPTED_WITH_REMARKS', 'REJECTED', 'PLANNED'],
+  REJECTED: ['SUBMITTED'], ACCEPTED: [], ACCEPTED_WITH_REMARKS: [],
+};
 
 export interface DealAccess {
   find(id: string): { id: string; number: string; title: string; status: DealStatus; siteCountry: string | null;
     customerId: string; lines: { id: string; kind: string; description: string; workType?: string | null;
       subcontractorId?: string | null }[] } | undefined;
+  contractValue(dealId: string): number;
+  currency(dealId: string): string;
 }
 
 interface StoredTask extends Omit<SiteTask, 'subcontractor' | 'late'> { subcontractorId: string | null }
@@ -25,6 +35,7 @@ export function createSitesMock(
   delay: <T>(v: T) => Promise<T>,
 ): SitesApi & { seed(dealId: string, s: Partial<StoredSite>, tasks: Omit<StoredTask, 'id' | 'position'>[]): void } {
   const sites: StoredSite[] = [];
+  const stages: Stage[] = [];
   const today = localToday;
 
   const party = (id: string | null | undefined): SiteParty | null => {
@@ -153,6 +164,69 @@ export function createSitesMock(
       });
       record('Site', siteId, 'TASKS_FROM_DEAL', {});
       return delay(view(s));
+    },
+    stages: async (siteId) => {
+      const s = find(siteId);
+      const mine = stages.filter((x) => x.siteId === siteId).sort((a, b) => a.seq - b.seq);
+      const contract = deals.contractValue(s.dealId);
+      const planned = mine.reduce((n, x) => n + x.amount, 0);
+      const accepted = mine.filter((x) => x.status.startsWith('ACCEPTED')).reduce((n, x) => n + x.amount, 0);
+      return delay({ stages: mine.map((x) => ({ ...x, nextStatuses: STAGE_NEXT[x.status] })),
+        coverage: { contractValue: contract, planned, accepted, unassigned: Math.round((contract - planned) * 100) / 100,
+          currency: deals.currency(s.dealId) } });
+    },
+    createStage: async (siteId, d) => {
+      const s = find(siteId);
+      if (!d.title.trim()) throw new ApiError(400, 'A stage needs a title');
+      if (!(d.amount >= 0)) throw new ApiError(400, 'The stage amount is zero or more');
+      if (d.taskIds.some((id) => !s.tasks.some((t) => t.id === id))) throw new ApiError(400, `Some tasks are not on site ${s.name}`);
+      const stage: Stage = { id: crypto.randomUUID(), siteId, seq: stages.filter((x) => x.siteId === siteId).length + 1,
+        ...d, title: d.title.trim(), status: 'PLANNED', nextStatuses: STAGE_NEXT.PLANNED, submittedAt: null,
+        decidedAt: null, decidedBy: null, remarks: null, fixUntil: null };
+      stages.push(stage);
+      record('AcceptanceStage', stage.id, 'CREATED', d);
+      return delay(stage);
+    },
+    editStage: async (id, d) => {
+      const st = stages.find((x) => x.id === id);
+      if (!st) throw new ApiError(404, `Stage ${id} not found`);
+      if (st.status !== 'PLANNED' && st.status !== 'REJECTED') throw new ApiError(409, `Stage ${st.seq} was handed over; withdraw it to change it`);
+      Object.assign(st, { ...d, title: d.title.trim() });
+      return delay({ ...st, nextStatuses: STAGE_NEXT[st.status] });
+    },
+    removeStage: async (id) => {
+      const i = stages.findIndex((x) => x.id === id);
+      if (i < 0) throw new ApiError(404, `Stage ${id} not found`);
+      if (stages[i].status !== 'PLANNED') throw new ApiError(409, 'Only a planned stage can be deleted');
+      stages.splice(i, 1);
+      return delay(undefined);
+    },
+    stageAction: async (id, action) => {
+      const st = stages.find((x) => x.id === id);
+      if (!st) throw new ApiError(404, `Stage ${id} not found`);
+      const to: StageStatus = action === 'submit' ? 'SUBMITTED' : 'PLANNED';
+      if (!STAGE_NEXT[st.status].includes(to)) throw new ApiError(409, `Stage ${st.seq} cannot move from ${st.status} to ${to}`);
+      Object.assign(st, { status: to, submittedAt: action === 'submit' ? new Date().toISOString() : null,
+        decidedAt: null, decidedBy: null });
+      record('AcceptanceStage', id, action.toUpperCase(), {});
+      return delay({ ...st, nextStatuses: STAGE_NEXT[st.status] });
+    },
+    decideStage: async (id, d) => {
+      const st = stages.find((x) => x.id === id);
+      if (!st) throw new ApiError(404, `Stage ${id} not found`);
+      if (!d.by.trim()) throw new ApiError(400, "Record who decided on the customer's side");
+      if (d.decision !== 'ACCEPTED' && !d.remarks?.trim()) throw new ApiError(400, "Write down the customer's remarks or reasons");
+      if (!STAGE_NEXT[st.status].includes(d.decision)) throw new ApiError(409, `Stage ${st.seq} cannot move from ${st.status} to ${d.decision}`);
+      Object.assign(st, { status: d.decision, decidedBy: d.by.trim(), remarks: d.remarks?.trim() || null,
+        fixUntil: d.decision === 'ACCEPTED_WITH_REMARKS' ? d.fixUntil : null, decidedAt: new Date().toISOString() });
+      record('AcceptanceStage', id, 'DECIDED', d);
+      return delay({ ...st, nextStatuses: STAGE_NEXT[st.status] });
+    },
+    protocolFile: async (id) => {
+      const st = stages.find((x) => x.id === id);
+      if (!st) throw new ApiError(404, `Stage ${id} not found`);
+      return new Blob([`<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;padding:32px">`
+        + `<p>Demo: the real system renders the handover protocol PDF here.</p><h1>${st.title}</h1>`], { type: 'text/html' });
     },
     workload: async (from, to) => {
       if (to < from) throw new ApiError(400, 'Choose a period of up to about a year');
