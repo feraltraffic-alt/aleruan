@@ -4,6 +4,6 @@
  */
 @org.springframework.modulith.ApplicationModule(
         displayName = "Site",
-        allowedDependencies = {"platform::audit", "platform::web", "platform::security", "platform::documents", "deal",
+        allowedDependencies = {"platform::audit", "platform::web", "platform::security", "platform::documents", "platform::files", "deal",
                 "counterparty"})
 package com.aleruan.dealos.site;

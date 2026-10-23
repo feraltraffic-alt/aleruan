@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 12MB
+      max-request-size: 13MB
   application:
     name: aleruan-deal-os
   datasource:

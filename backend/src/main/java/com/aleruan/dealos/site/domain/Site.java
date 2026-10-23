@@ -60,6 +60,12 @@ public class Site {
 
     private String notes;
 
+    @Column(name = "handover_date")
+    private LocalDate handoverDate;
+
+    @Column(name = "warranty_months")
+    private Integer warrantyMonths;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -112,6 +118,23 @@ public class Site {
         this.plannedEnd = d.plannedEnd();
         this.status = d.status() == null ? status : d.status();
         this.notes = blank(d.notes());
+    }
+
+    /** The day the whole site was handed over; warranty runs from then. */
+    public void setHandover(LocalDate handoverDate, Integer warrantyMonths) {
+        if (warrantyMonths != null && (warrantyMonths < 0 || warrantyMonths > 120)) {
+            throw new IllegalArgumentException("Warranty is 0 to 120 months");
+        }
+        if (handoverDate != null && plannedStart != null && handoverDate.isBefore(plannedStart)) {
+            throw new IllegalArgumentException("Handover cannot be before the site started");
+        }
+        this.handoverDate = handoverDate;
+        this.warrantyMonths = handoverDate == null ? null : warrantyMonths;
+    }
+
+    /** Last day of the warranty, or null while the site is not handed over. */
+    public LocalDate warrantyUntil() {
+        return handoverDate == null || warrantyMonths == null ? null : handoverDate.plusMonths(warrantyMonths).minusDays(1);
     }
 
     public SiteTask addTask(String title, String workType, UUID dealLineId, UUID subcontractorId, LocalDate start,
@@ -185,6 +208,8 @@ public class Site {
     public LocalDate getPlannedEnd() { return plannedEnd; }
     public SiteStatus getStatus() { return status; }
     public String getNotes() { return notes; }
+    public LocalDate getHandoverDate() { return handoverDate; }
+    public Integer getWarrantyMonths() { return warrantyMonths; }
     public Instant getCreatedAt() { return createdAt; }
     public String getCreatedBy() { return createdBy; }
     public List<SiteTask> getTasks() { return Collections.unmodifiableList(tasks); }

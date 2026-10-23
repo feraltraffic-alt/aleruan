@@ -66,7 +66,11 @@ class SiteController {
                     String city, String country, BigDecimal latitude, BigDecimal longitude, String projectManager,
                     String foreman, LocalDate plannedStart, LocalDate plannedEnd, SiteStatus status, String notes,
                     PartyView customer, int progressPct, long lateTasks, Set<String> workTypes, Instant createdAt,
+                    LocalDate handoverDate, Integer warrantyMonths, LocalDate warrantyUntil, long openDefects,
                     List<TaskView> tasks) {
+    }
+
+    record HandoverBody(LocalDate handoverDate, @Min(0) @Max(120) Integer warrantyMonths) {
     }
 
     record WorkloadTask(UUID taskId, String title, UUID siteId, String siteName, LocalDate start, LocalDate end,
@@ -79,9 +83,18 @@ class SiteController {
     private final SiteService service;
     private final CounterpartyLookup counterparties;
 
-    SiteController(SiteService service, CounterpartyLookup counterparties) {
+    private final com.aleruan.dealos.site.application.SiteRecordsService records;
+
+    SiteController(SiteService service, CounterpartyLookup counterparties,
+                   com.aleruan.dealos.site.application.SiteRecordsService records) {
         this.service = service;
         this.counterparties = counterparties;
+        this.records = records;
+    }
+
+    @PutMapping("/sites/{id}/handover")
+    SiteView handover(@PathVariable UUID id, @Validated @RequestBody HandoverBody body) {
+        return full(records.setHandover(id, body.handoverDate(), body.warrantyMonths()));
     }
 
     @GetMapping("/sites")
@@ -157,7 +170,8 @@ class SiteController {
                 s.getLatitude(), s.getLongitude(), s.getProjectManager(), s.getForeman(), s.getPlannedStart(),
                 s.getPlannedEnd(), s.getStatus(), s.getNotes(),
                 deal == null ? null : PartyView.of(party(deal.customerId(), parties)),
-                s.progressPct(), s.lateTasks(today), service.workTypes(s), s.getCreatedAt(), tasks);
+                s.progressPct(), s.lateTasks(today), service.workTypes(s), s.getCreatedAt(), s.getHandoverDate(),
+                s.getWarrantyMonths(), s.warrantyUntil(), records.unresolvedCount(s.getId()), tasks);
     }
 
     private TaskView task(SiteTask t, Map<UUID, CounterpartySummary> parties, LocalDate today) {
