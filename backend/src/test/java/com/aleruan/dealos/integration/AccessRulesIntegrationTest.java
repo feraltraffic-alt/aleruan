@@ -23,7 +23,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 /** The role matrix with real security on: who gets 403 and who gets through to the business rules. */
 @SpringBootTest(properties = {"dealos.security.enabled=true", "dealos.registry.live=false", "dealos.rates.live=false",
-        "spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:1/realms/test"})
+        "spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:1/realms/test",
+        "dealos.import.anthropic-api-key=", "dealos.import.worker-enabled=false"})
 @AutoConfigureMockMvc
 class AccessRulesIntegrationTest {
 

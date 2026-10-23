@@ -124,12 +124,20 @@ public class ImportDocument {
         this.status = ImportStatus.EXTRACTED;
     }
 
-    /** A failed read is queued again until it has been tried {@link #MAX_ATTEMPTS} times. */
-    public void failed(String message, Instant at) {
+    /**
+     * A failure that may pass (service busy, network) is queued again until it has been tried
+     * {@link #MAX_ATTEMPTS} times; one that will not (refusal, document too long, bad key) fails at once.
+     */
+    public void failed(String message, boolean retryable, Instant at) {
         requireStatus(ImportStatus.PROCESSING);
         this.error = message == null ? "Unknown error" : message.length() > 2000 ? message.substring(0, 2000) : message;
         this.processedAt = at;
-        this.status = attempts < MAX_ATTEMPTS ? ImportStatus.QUEUED : ImportStatus.FAILED;
+        this.status = retryable && attempts < MAX_ATTEMPTS ? ImportStatus.QUEUED : ImportStatus.FAILED;
+    }
+
+    /** True while the worker has it; a person cannot reject or confirm it then. */
+    public boolean isBeingRead() {
+        return status == ImportStatus.PROCESSING;
     }
 
     /** Back in the queue: after a failure, to read again, or when the worker died mid-way. */
@@ -157,6 +165,9 @@ public class ImportDocument {
     }
 
     public void reject(String reason, Instant at, String by) {
+        if (status == ImportStatus.PROCESSING) {
+            throw new IllegalStateException("The document is being read right now; reject it when reading has finished");
+        }
         if (!status.isOpen()) {
             throw new IllegalStateException("Document " + fileName + " is already " + status);
         }

@@ -84,17 +84,24 @@ public class ClaudeDocumentReader implements DocumentReader {
                 .build();
         for (int attempt = 1; ; attempt++) {
             HttpResponse<String> response;
+            java.util.concurrent.CompletableFuture<HttpResponse<String>> call =
+                    http.sendAsync(request, HttpResponse.BodyHandlers.ofString());
             try {
-                response = http.send(request, HttpResponse.BodyHandlers.ofString());
-            } catch (IOException e) {
+                // the whole answer within the timeout, not only its headers
+                response = call.get(timeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+            } catch (java.util.concurrent.TimeoutException | java.util.concurrent.ExecutionException e) {
+                call.cancel(true);
                 if (attempt < MAX_TRIES) {
                     pause(attempt);
                     continue;
                 }
-                throw new ReadFailed("Claude could not be reached: " + e.getMessage(), e);
+                String why = e instanceof java.util.concurrent.TimeoutException ? "did not answer in time"
+                        : "could not be reached: " + e.getCause();
+                throw new ReadFailed("Claude " + why, true, e);
             } catch (InterruptedException e) {
+                call.cancel(true);
                 Thread.currentThread().interrupt();
-                throw new ReadFailed("Reading was interrupted", e);
+                throw new ReadFailed("Reading was interrupted", true, e);
             }
             int status = response.statusCode();
             if (status == 200) {
@@ -106,7 +113,7 @@ public class ClaudeDocumentReader implements DocumentReader {
                 pause(attempt);
                 continue;
             }
-            throw new ReadFailed(failure(status, response.body()));
+            throw new ReadFailed(failure(status, response.body()), busy, null);
         }
     }
 
@@ -169,7 +176,7 @@ public class ClaudeDocumentReader implements DocumentReader {
                     usage.has("input_tokens") ? usage.get("input_tokens").asInt() : null,
                     usage.has("output_tokens") ? usage.get("output_tokens").asInt() : null);
         } catch (JsonProcessingException e) {
-            throw new ReadFailed("Claude's answer could not be understood", e);
+            throw new ReadFailed("Claude's answer could not be understood", true, e);
         }
     }
 

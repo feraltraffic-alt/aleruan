@@ -9,6 +9,7 @@ import { useAction } from '../components/useAction';
 import { useLoad } from '../components/useLoad';
 import { useI18n, type MessageKey } from '../i18n';
 import { ImportStatusTag } from './Import';
+import { amount, isoDay } from '../importParse';
 
 const TYPES: DocType[] = ['SUPPLIER_INVOICE', 'CUSTOMER_INVOICE', 'CREDIT_NOTE', 'CONTRACT', 'CMR', 'OTHER'];
 const ROLES: PartyRole[] = ['SUBCONTRACTOR', 'SUPPLIER', 'CUSTOMER', 'CARRIER'];
@@ -21,7 +22,7 @@ interface Form {
   bankAccount: string; role: PartyRole | ''; dealId: string;
 }
 
-const isoOrEmpty = (s: string | null | undefined) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '');
+
 
 function formFrom(d: ImportDetail): Form {
   const c = d.confirmed;
@@ -35,19 +36,15 @@ function formFrom(d: ImportDetail): Form {
       companyId: c.party?.companyId ?? '', vatNumber: c.party?.vatNumber ?? '', address: c.party?.address ?? '',
       bankAccount: c.party?.bankAccount ?? '', role: c.role ?? '', dealId: c.dealId ?? '' };
   }
-  return { type: d.suggestion.type, documentNumber: e?.documentNumber ?? '', issueDate: isoOrEmpty(e?.issueDate),
-    taxableDate: isoOrEmpty(e?.taxableDate), dueDate: isoOrEmpty(e?.dueDate), currency: e?.currency ?? '',
+  return { type: d.suggestion.type, documentNumber: e?.documentNumber ?? '', issueDate: isoDay(e?.issueDate),
+    taxableDate: isoDay(e?.taxableDate), dueDate: isoDay(e?.dueDate), currency: e?.currency ?? '',
     variableSymbol: e?.variableSymbol ?? '', netAmount: e?.netAmount ?? '', vatAmount: e?.vatAmount ?? '',
     totalAmount: e?.totalAmount ?? '', vatNote: e?.vatNote ?? '', useMatch: !!d.suggestion.match, name: p.name,
     country: p.country, companyId: p.companyId, vatNumber: p.vatNumber, address: p.address, bankAccount: p.bankAccount,
     role: d.suggestion.role ?? '', dealId: '' };
 }
 
-const amount = (s: string) => {
-  if (!s.trim()) return null;
-  const v = Number(s.replace(/\s/g, '').replace(',', '.'));
-  return Number.isFinite(v) ? v : NaN;
-};
+
 
 /** The document beside what was read from it: correct, then confirm. Nothing is created before that. */
 export function ImportReviewPage() {
@@ -57,7 +54,10 @@ export function ImportReviewPage() {
   const preview = useLoad(() => api.importFile(id), [id]);
   const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
 
-  const reading = detail.data && ['QUEUED', 'PROCESSING'].includes(detail.data.document.status);
+  const queue = useLoad(() => api.importQueue(), []);
+  // poll only while something is actually reading; without a reader a queued document just waits
+  const reading = !!queue.data?.readerConfigured && !!detail.data
+    && ['QUEUED', 'PROCESSING'].includes(detail.data.document.status);
   const { reload } = detail;
   useEffect(() => {
     if (!reading) return undefined;
@@ -89,7 +89,7 @@ export function ImportReviewPage() {
               : <img src={url} alt={d.document.fileName} />}
           <a className="sub" href={url ?? undefined} target="_blank" rel="noreferrer">{t('im.openOriginal', { name: d.document.fileName })}</a>
         </div>
-        <ReviewForm key={`${d.document.id}-${d.document.status}`} detail={d} onChanged={detail.reload}
+        <ReviewForm key={`${d.document.id}-${d.read ? 'read' : 'unread'}-${['CONFIRMED', 'REJECTED'].includes(d.document.status)}`} detail={d} onChanged={detail.reload}
           outcome={outcome} onOutcome={setOutcome} />
       </div>
     </>

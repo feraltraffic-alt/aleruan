@@ -85,3 +85,18 @@ describe('import screens', () => {
     await waitFor(() => expect(within(table).queryAllByRole('button', { name: 'Отметить оплату' }).length).toBe(before - 1));
   });
 });
+
+describe('review form parsing mirrors the server', () => {
+  it('reads local amount and date formats', async () => {
+    const { amount, isoDay } = await import('../importParse');
+    expect(amount('12 345,50')).toBe(12345.5);
+    expect(amount('12.345,50 Kč')).toBe(12345.5);
+    expect(amount('1,234.50')).toBe(1234.5);
+    expect(amount('-1210')).toBe(-1210);
+    expect(amount('')).toBeNull();
+    expect(amount('n/a')).toBeNaN();
+    expect(isoDay('15.3.2026')).toBe('2026-03-15');
+    expect(isoDay('2026-03-15')).toBe('2026-03-15');
+    expect(isoDay('March')).toBe('');
+  });
+});

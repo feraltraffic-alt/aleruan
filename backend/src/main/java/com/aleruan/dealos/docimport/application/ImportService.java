@@ -16,6 +16,7 @@ import com.aleruan.dealos.platform.documents.CompanyProfile;
 import com.aleruan.dealos.platform.files.FileInfo;
 import com.aleruan.dealos.platform.files.FileStore;
 import com.aleruan.dealos.platform.security.CurrentActor;
+import com.aleruan.dealos.platform.security.Roles;
 import com.aleruan.dealos.platform.web.NotFoundException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -188,7 +189,10 @@ public class ImportService {
         if (r == null) {
             return false;
         }
-        tx.executeWithoutResult(s -> documents.requeueStale(clock.instant().minus(STUCK)));
+        tx.executeWithoutResult(s -> documents.stuck(clock.instant().minus(STUCK)).forEach(d -> {
+            d.failed("Reading did not finish (the server stopped or the answer never came)", true, clock.instant());
+            audit.recordAs("claude", AUDIT_TYPE, d.getId().toString(), "READ_STUCK", Map.of("attempt", d.getAttempts()));
+        }));
         UUID id = tx.execute(s -> documents.lockNextQueued().map(next -> {
             get(next).start(clock.instant());
             return next;
@@ -203,6 +207,9 @@ public class ImportService {
             List<ImportChecks.Warning> warnings = ImportChecks.check(e, ours());
             DocType type = type(e.documentType());
             tx.executeWithoutResult(s -> {
+                if (!get(id).isBeingRead()) {
+                    return; // taken back meanwhile (stuck and requeued); this late answer is dropped
+                }
                 get(id).extracted(type, write(Map.of("read", e)), write(warnings), result.model(), result.inputTokens(),
                         result.outputTokens(), clock.instant());
                 Map<String, Object> payload = new LinkedHashMap<>();
@@ -216,9 +223,13 @@ public class ImportService {
         } catch (RuntimeException ex) {
             log.warn("Reading {} failed: {}", doc.getFileName(), ex.toString());
             String message = ex instanceof DocumentReader.ReadFailed ? ex.getMessage() : "Reading failed: " + ex;
+            boolean retryable = !(ex instanceof DocumentReader.ReadFailed rf) || rf.retryable();
             tx.executeWithoutResult(s -> {
                 ImportDocument d = get(id);
-                d.failed(message, clock.instant());
+                if (!d.isBeingRead()) {
+                    return;
+                }
+                d.failed(message, retryable, clock.instant());
                 audit.recordAs("claude", AUDIT_TYPE, id.toString(), "READ_FAILED",
                         Map.of("error", message, "attempt", d.getAttempts()));
             });
@@ -302,6 +313,8 @@ public class ImportService {
             UUID invoiceId = null;
             String bankAccount = r.party() == null ? null : blankToNull(r.party().bankAccount());
             if (registersSupplierInvoice(r, role)) {
+                // the same people who may register received invoices directly
+                actor.require("register received invoices", Roles.ADMIN, Roles.ACCOUNTANT, Roles.ACCOUNT_MANAGER);
                 if (blank(r.documentNumber()) || r.totalAmount() == null || blank(r.currency())) {
                     throw new IllegalArgumentException("A received invoice needs its number, total and currency");
                 }
@@ -312,6 +325,8 @@ public class ImportService {
                 resultType = "SUPPLIER_INVOICE";
                 resultId = invoiceId;
             } else if (r.type() == DocType.CONTRACT && r.dealId() != null) {
+                actor.require("add contract papers to deals", Roles.ADMIN, Roles.SALES_MANAGER, Roles.ACCOUNT_MANAGER,
+                        Roles.PROJECT_MANAGER);
                 resultId = deals.attachDocument(r.dealId(), doc.getFileName(), files.data(doc.getFileId()));
                 resultType = "DEAL_DOCUMENT";
             } else if (partyId != null) {
