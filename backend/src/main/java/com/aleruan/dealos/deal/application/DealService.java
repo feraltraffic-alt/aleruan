@@ -6,6 +6,7 @@ import com.aleruan.dealos.deal.DealCatalog;
 import com.aleruan.dealos.deal.domain.Deal;
 import com.aleruan.dealos.deal.domain.DealLine;
 import com.aleruan.dealos.deal.domain.DealRepository;
+import com.aleruan.dealos.deal.domain.DealPricing;
 import com.aleruan.dealos.deal.domain.DealStatus;
 import com.aleruan.dealos.deal.domain.Direction;
 import com.aleruan.dealos.deal.domain.LineKind;
@@ -129,7 +130,32 @@ public class DealService implements DealCatalog {
     @Transactional(readOnly = true)
     public Optional<DealSummary> find(UUID dealId) {
         return deals.findById(dealId).map(d -> new DealSummary(d.getId(), d.getNumber(), d.getTitle(),
-                d.getCurrency(), d.getStatus().name(), d.getSiteCountry()));
+                d.getCurrency(), d.getStatus().name(), d.getSiteCountry(), d.getCustomerId(), d.getDirection().name()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CustomerLine> customerLines(UUID dealId) {
+        Deal deal = get(dealId);
+        return deal.getLines().stream().map(l -> {
+            DealPricing.PricedLine p = DealPricing.price(l.pricingInput(), deal.getDefaultMarkupPct());
+            return new CustomerLine(l.getPosition(), l.getKind().name(), l.getDescription(), l.getWorkType(),
+                    l.getUnit(), l.getQuantity(), p.unitPrice(), p.priceTotal());
+        }).toList();
+    }
+
+    @Override
+    @Transactional
+    public void markQuoted(UUID dealId) {
+        Deal deal = get(dealId);
+        if (deal.getStatus() == DealStatus.QUOTED) {
+            return;
+        }
+        if (deal.getStatus() != DealStatus.DRAFT) {
+            throw new IllegalStateException("Deal " + deal.getNumber() + " is " + deal.getStatus()
+                    + "; a new quote is possible only before the customer accepts");
+        }
+        moveTo(dealId, DealStatus.QUOTED);
     }
 
     @Override

@@ -40,6 +40,7 @@ class CounterpartyLookupImpl implements CounterpartyLookup {
     static CounterpartySummary summary(Counterparty c) {
         return new CounterpartySummary(c.getId(), c.getLegalName(), c.getCountry(),
                 c.getRoles().stream().map(Enum::name).collect(Collectors.toUnmodifiableSet()),
-                c.getWorkTypes(), c.getCheckStatus() == null ? null : c.getCheckStatus().name());
+                c.getWorkTypes(), c.getCheckStatus() == null ? null : c.getCheckStatus().name(),
+                c.getCompanyId(), c.getVatNumber(), c.getAddress());
     }
 }

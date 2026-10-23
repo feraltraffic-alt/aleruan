@@ -27,6 +27,20 @@ dealos:
     enabled: true
   sanctions:
     url: ${DEALOS_SANCTIONS_URL:}   # EU FSF XML link with your personal token; empty = disabled
+  company:   # supplier details printed on quotes; override with DEALOS_COMPANY_* variables
+    name: ${DEALOS_COMPANY_NAME:Aleruan-industry s.r.o.}
+    country: CZ
+    company-id: "14220997"
+    vat-number: CZ14220997
+    address: ${DEALOS_COMPANY_ADDRESS:Malešická 2855/2b, 130 00 Praha 3}
+    email: ${DEALOS_COMPANY_EMAIL:}
+    phone: ${DEALOS_COMPANY_PHONE:}
+    web: ${DEALOS_COMPANY_WEB:}
+    bank-name: ${DEALOS_COMPANY_BANK:PKO Bank Polski}
+    iban: ${DEALOS_COMPANY_IBAN:PL23102010130000020204812139}
+    swift: ${DEALOS_COMPANY_SWIFT:BPKOPLPW}
+  quotes:
+    valid-days: 30
   deals:
     margin-warning-pct: ${DEALOS_MARGIN_WARNING_PCT:10}   # warn when the deal margin on price drops below this
   registry:
