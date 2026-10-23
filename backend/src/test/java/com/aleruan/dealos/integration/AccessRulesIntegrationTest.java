@@ -100,6 +100,14 @@ class AccessRulesIntegrationTest {
     }
 
     @Test
+    void analyticsForTheOfficeOnly() throws Exception {
+        as("ACCOUNTANT", get("/api/analytics/margin"), ALLOWED);
+        as("PROJECT_MANAGER", get("/api/analytics/health"), ALLOWED);
+        as("FOREMAN", get("/api/analytics/margin"), DENIED);
+        as("WAREHOUSE_KEEPER", get("/api/analytics/health"), DENIED);
+    }
+
+    @Test
     void evidencePackageForTheOfficeContractPapersBySalesOrProject() throws Exception {
         as("ACCOUNTANT", get("/api/deals/" + ANY + "/evidence"), ALLOWED);
         as("ACCOUNTANT", post("/api/deals/" + ANY + "/evidence/export"), ALLOWED);

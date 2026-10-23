@@ -10,6 +10,8 @@ public interface ChangeOrderRepository extends JpaRepository<ChangeOrder, UUID> 
 
     List<ChangeOrder> findByDealIdOrderBySeq(UUID dealId);
 
+    List<ChangeOrder> findByDealIdInOrderBySeq(java.util.Collection<UUID> dealIds);
+
     @Query("select coalesce(max(c.seq), 0) from ChangeOrder c where c.dealId = :dealId")
     int lastSeq(@Param("dealId") UUID dealId);
 }

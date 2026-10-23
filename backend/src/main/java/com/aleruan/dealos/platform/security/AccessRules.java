@@ -71,6 +71,9 @@ final class AccessRules {
                 .requestMatchers("/api/change-orders/**", "/api/rfqs/**").hasAnyRole(SALES_OR_PROJECT)
                 .requestMatchers("/api/deals/**").hasAnyRole(SALES)
 
+                // analytics: margins and risks are office matters
+                .requestMatchers(GET, "/api/analytics/**").hasAnyRole(OFFICE)
+
                 // invoices
                 .requestMatchers(GET, "/api/invoices/**").hasAnyRole(OFFICE)
                 .requestMatchers("/api/invoices/**").hasAnyRole(FINANCE)

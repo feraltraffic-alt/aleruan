@@ -64,7 +64,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * manifest.json and SHA256SUMS. The hash of SHA256SUMS goes into the audit log, which anchors the package.
  */
 @Service
-public class EvidenceService {
+public class EvidenceService implements com.aleruan.dealos.evidence.EvidenceCatalog {
 
     public static final String EXPORTED = "EVIDENCE_EXPORTED";
     private static final String DEAL_AUDIT_TYPE = "Deal";
@@ -134,7 +134,7 @@ public class EvidenceService {
 
     @Transactional(readOnly = true)
     public Overview overview(UUID dealId) {
-        Assembled a = assemble(dealId);
+        Assembled a = assemble(dealId, true);
         Map<EvidenceFile, String> paths = EvidenceLayout.paths(a.entries());
         List<Item> items = a.entries().stream().map(e -> new Item(e.section(), e.date(), e.by(), e.title(), e.status(),
                 e.amount(), e.currency(), e.reference(), e.text(),
@@ -148,7 +148,7 @@ public class EvidenceService {
      * and no database connection is held while PDFs render.
      */
     public Export export(UUID dealId) {
-        Assembled a = readOnly.execute(status -> assemble(dealId));
+        Assembled a = readOnly.execute(status -> assemble(dealId, true));
         Path tmp = null;
         try {
             tmp = Files.createTempFile("evidence-", ".zip");
@@ -222,7 +222,14 @@ public class EvidenceService {
 
     // ---- assembly ----
 
-    Assembled assemble(UUID dealId) {
+    @Override
+    @Transactional(readOnly = true)
+    public List<EvidenceCheck> gaps(UUID dealId) {
+        return assemble(dealId, false).checks();
+    }
+
+    /** {@code withAudit}: also extract the audit records and verify the whole chain (skipped for gap lists). */
+    Assembled assemble(UUID dealId, boolean withAudit) {
         DealSummary deal = deals.find(dealId).orElseThrow(() -> new NotFoundException("Deal " + dealId + " not found"));
         CounterpartySummary customer = counterparties.find(deal.customerId()).orElse(null);
         EvidenceCollector out = new EvidenceCollector();
@@ -231,12 +238,14 @@ public class EvidenceService {
         }
         parties(deal, customer, out);
 
-        List<AuditRecord> records = out.auditRefs().stream()
+        List<AuditRecord> records = !withAudit ? List.of() : out.auditRefs().stream()
                 .flatMap(r -> audit.history(r.entityType(), r.entityId()).stream())
                 .collect(Collectors.toMap(AuditRecord::seq, r -> r, (x, y) -> x, java.util.TreeMap::new))
                 .values().stream().toList();
-        ChainVerification chain = audit.verifyChain();
-        if (chain.valid()) {
+        ChainVerification chain = withAudit ? audit.verifyChain() : null;
+        if (chain == null) {
+            // gap lists for analytics: the chain is checked once on the audit page, not per deal
+        } else if (chain.valid()) {
             out.ok("AUDIT_CHAIN", Map.of("verified", Long.toString(chain.verifiedRecords())));
         } else {
             out.missing("AUDIT_CHAIN", Map.of("seq", String.valueOf(chain.brokenAtSeq())));

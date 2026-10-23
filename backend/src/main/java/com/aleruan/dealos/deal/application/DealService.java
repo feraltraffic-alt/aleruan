@@ -164,6 +164,47 @@ public class DealService implements DealCatalog {
 
     @Override
     @Transactional(readOnly = true)
+    public List<DealEconomics> economics(java.util.Set<String> statuses) {
+        List<DealStatus> wanted = statuses.stream().map(DealStatus::valueOf).toList();
+        if (wanted.isEmpty()) {
+            return List.of();
+        }
+        List<Deal> list = deals.withStatus(wanted);
+        Map<UUID, List<ChangeOrder>> orders = list.isEmpty() ? Map.of()
+                : changeOrders.findByDealIdInOrderBySeq(list.stream().map(Deal::getId).toList()).stream()
+                        .collect(java.util.stream.Collectors.groupingBy(ChangeOrder::getDealId));
+        return list.stream().map(d -> economics(d, orders.getOrDefault(d.getId(), List.of()))).toList();
+    }
+
+    private static DealEconomics economics(Deal d, List<ChangeOrder> orders) {
+        BigDecimal markup = d.getDefaultMarkupPct();
+        List<EconomicsLine> lines = new java.util.ArrayList<>();
+        for (DealLine l : d.getLines()) {
+            DealPricing.PricedLine p = DealPricing.price(l.pricingInput(), markup);
+            lines.add(new EconomicsLine(l.getKind().name(), l.getWorkType(), l.getSubcontractorId(), p.costTotal(),
+                    p.priceTotal(), false));
+        }
+        int pending = 0;
+        BigDecimal pendingPrice = BigDecimal.ZERO.setScale(2);
+        for (ChangeOrder co : orders) {
+            if (co.getStatus() == com.aleruan.dealos.deal.domain.ChangeOrderStatus.APPROVED) {
+                co.getLines().forEach(l -> {
+                    DealPricing.PricedLine p = DealPricing.price(l.pricingInput(), markup);
+                    lines.add(new EconomicsLine(l.getKind().name(), l.getWorkType(), l.getSubcontractorId(),
+                            p.costTotal(), p.priceTotal(), true));
+                });
+            } else if (co.getStatus() == com.aleruan.dealos.deal.domain.ChangeOrderStatus.SENT) {
+                pending++;
+                pendingPrice = pendingPrice.add(co.totals(markup).price());
+            }
+        }
+        return new DealEconomics(d.getId(), d.getNumber(), d.getTitle(), d.getStatus().name(), d.getDirection().name(),
+                d.getSiteCountry(), d.getCurrency(), d.getCustomerId(), d.getCreatedAt(), List.copyOf(lines), pending,
+                pendingPrice);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public BigDecimal contractValue(UUID dealId) {
         Deal deal = get(dealId);
         return ChangeOrderService.contractOf(deal, changeOrders.findByDealIdOrderBySeq(dealId)).total().price();

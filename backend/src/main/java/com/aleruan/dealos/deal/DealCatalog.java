@@ -28,7 +28,24 @@ public interface DealCatalog {
                               String decidedBy, Instant sentAt, String createdBy) {
     }
 
+    /** One priced line for analytics: the deal's own lines and lines of approved change orders. */
+    record EconomicsLine(String kind, String workType, UUID subcontractorId, BigDecimal cost, BigDecimal price,
+                         boolean changeOrder) {
+    }
+
+    /**
+     * A deal's economics in its own currency: what it is agreed to earn and cost, line by line, plus change
+     * orders sent to the customer and not yet decided.
+     */
+    record DealEconomics(UUID id, String number, String title, String status, String direction, String siteCountry,
+                         String currency, UUID customerId, Instant createdAt, List<EconomicsLine> lines,
+                         int pendingChangeOrders, BigDecimal pendingChangePrice) {
+    }
+
     Optional<DealSummary> find(UUID dealId);
+
+    /** Economics of every deal in one of the given statuses (e.g. WON, IN_PROGRESS, COMPLETED). */
+    List<DealEconomics> economics(java.util.Set<String> statuses);
 
     Optional<ChangeOrderSummary> changeOrder(UUID changeOrderId);
 

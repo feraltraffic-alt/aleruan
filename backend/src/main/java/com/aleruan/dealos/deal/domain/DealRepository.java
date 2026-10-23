@@ -18,6 +18,9 @@ public interface DealRepository extends JpaRepository<Deal, UUID> {
             """)
     List<Deal> search(@Param("q") String q, @Param("status") DealStatus status, @Param("customerId") UUID customerId);
 
+    @Query("select d from Deal d where d.status in :statuses order by d.createdAt")
+    List<Deal> withStatus(@Param("statuses") java.util.Collection<DealStatus> statuses);
+
     @Query(value = "select nextval('deal_number_seq')", nativeQuery = true)
     long nextNumber();
 }
