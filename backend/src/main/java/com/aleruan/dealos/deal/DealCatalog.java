@@ -66,6 +66,9 @@ public interface DealCatalog {
      */
     void markQuoted(UUID dealId);
 
+    /** Adds a contract paper (scan or PDF) to the deal, as an upload on the deal page would; returns the file id. */
+    UUID attachDocument(UUID dealId, String fileName, byte[] data);
+
     /** Tender result: set the line's unit cost and subcontractor (selling price unchanged). */
     void assignCost(UUID dealId, UUID lineId, BigDecimal unitCost, UUID subcontractorId, String reason);
 }

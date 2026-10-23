@@ -54,6 +54,11 @@ dealos:
     google-map-id: ${GOOGLE_MAPS_MAP_ID:}     # optional; without it the demo map style is used
   deals:
     margin-warning-pct: ${DEALOS_MARGIN_WARNING_PCT:10}   # warn when the deal margin on price drops below this
+  import:   # documents read by Claude; without a key they wait in the queue and can be typed in by hand
+    anthropic-api-key: ${ANTHROPIC_API_KEY:}
+    model: ${DEALOS_IMPORT_MODEL:claude-sonnet-5-5}
+    worker-enabled: true
+    poll: PT10S
   registry:
     timeout: 5s
     vies:

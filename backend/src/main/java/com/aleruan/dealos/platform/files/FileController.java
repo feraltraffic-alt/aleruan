@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 class FileController {
 
-    /** Owner type of a deal's contract papers (deal module); never served through this site-file endpoint. */
-    static final String DEAL_PAPERS = "Deal";
+    /** Owner types of site records (site module) whose files this endpoint serves. */
+    static final java.util.Set<String> SITE_RECORDS = java.util.Set.of("DiaryEntry", "Defect");
 
     private final FileStore store;
 
@@ -26,8 +26,9 @@ class FileController {
     @GetMapping("/api/files/{id}")
     ResponseEntity<byte[]> get(@PathVariable UUID id) {
         FileStore.Content c = store.get(id);
-        if (DEAL_PAPERS.equals(c.info().ownerType())) {
-            // contract papers are served only under /api/deals/{id}/documents, to deal users
+        if (!SITE_RECORDS.contains(c.info().ownerType())) {
+            // only site photos are served here (to the site crew too); contracts, supplier invoices and
+            // documents being imported are served by their own modules, to the roles that may see them
             throw new com.aleruan.dealos.platform.web.NotFoundException("File " + id + " not found");
         }
         return ResponseEntity.ok()

@@ -20,7 +20,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * Live registries are off; a stub ARES answers for Czech companies so no test touches the network.
  */
 @SpringBootTest(properties = {"dealos.security.enabled=false", "dealos.registry.live=false", "dealos.rates.live=false",
-        "dealos.rates.offline.EUR=25.000"})
+        "dealos.rates.offline.EUR=25.000", "dealos.import.worker-enabled=false"})
 @Import(IntegrationTestBase.StubRegistry.class)
 abstract class IntegrationTestBase {
 
@@ -39,6 +39,34 @@ abstract class IntegrationTestBase {
 
     @TestConfiguration
     static class StubRegistry {
+        /**
+         * Stands in for Claude: test PDFs carry the extraction as JSON on a comment line ("% {...}"),
+         * and a document containing FAIL fails to read.
+         */
+        @Bean
+        com.aleruan.dealos.docimport.reader.DocumentReader stubReader(com.fasterxml.jackson.databind.ObjectMapper json) {
+            return new com.aleruan.dealos.docimport.reader.DocumentReader() {
+                public Result read(byte[] data, String contentType, String fileName) {
+                    String text = new String(data, java.nio.charset.StandardCharsets.UTF_8);
+                    if (text.contains("FAIL")) {
+                        throw new ReadFailed("Claude is busy right now; the document will be read again later");
+                    }
+                    String line = text.lines().filter(l -> l.startsWith("% {")).findFirst()
+                            .orElseThrow(() -> new ReadFailed("No data in the test document"));
+                    try {
+                        return new Result(json.readValue(line.substring(2),
+                                com.aleruan.dealos.docimport.reader.Extraction.class), "stub", 100, 50);
+                    } catch (java.io.IOException e) {
+                        throw new ReadFailed("Bad test document", e);
+                    }
+                }
+
+                public String model() {
+                    return "stub";
+                }
+            };
+        }
+
         @Bean
         RegistryClient stubAres() {
             return new RegistryClient() {

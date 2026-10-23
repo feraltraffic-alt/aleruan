@@ -71,11 +71,15 @@ final class AccessRules {
                 .requestMatchers("/api/change-orders/**", "/api/rfqs/**").hasAnyRole(SALES_OR_PROJECT)
                 .requestMatchers("/api/deals/**").hasAnyRole(SALES)
 
+                // document import: the office uploads, reviews and confirms
+                .requestMatchers("/api/imports/**").hasAnyRole(OFFICE)
+
                 // analytics: margins and risks are office matters
                 .requestMatchers(GET, "/api/analytics/**").hasAnyRole(OFFICE)
 
-                // invoices
-                .requestMatchers(GET, "/api/invoices/**").hasAnyRole(OFFICE)
+                // invoices, issued and received
+                .requestMatchers(GET, "/api/invoices/**", "/api/supplier-invoices/**").hasAnyRole(OFFICE)
+                .requestMatchers("/api/supplier-invoices/**").hasAnyRole(FINANCE)
                 .requestMatchers("/api/invoices/**").hasAnyRole(FINANCE)
 
                 // sites: diary and defects by the crew, everything else by project management

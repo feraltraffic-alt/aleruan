@@ -10,6 +10,10 @@ public interface CounterpartyRepository extends JpaRepository<Counterparty, UUID
 
     boolean existsByCountryAndCompanyId(String country, String companyId);
 
+    java.util.Optional<Counterparty> findFirstByCountryAndCompanyId(String country, String companyId);
+
+    java.util.Optional<Counterparty> findFirstByVatNumber(String vatNumber);
+
     @Query("""
             select distinct c from Counterparty c left join c.roles r
             where (:q is null or lower(c.legalName) like lower(concat('%', cast(:q as string), '%'))

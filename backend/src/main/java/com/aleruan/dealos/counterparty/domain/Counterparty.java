@@ -85,6 +85,11 @@ public class Counterparty {
         this.createdAt = createdAt;
     }
 
+    /** True when the role was new. */
+    public boolean addRole(CounterpartyRole role) {
+        return roles.add(role);
+    }
+
     public void setWorkTypes(Set<String> codes) {
         this.workTypes = codes == null ? new java.util.HashSet<>() : new java.util.HashSet<>(codes);
     }

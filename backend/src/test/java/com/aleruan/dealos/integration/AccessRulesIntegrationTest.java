@@ -100,6 +100,18 @@ class AccessRulesIntegrationTest {
     }
 
     @Test
+    void documentImportAndReceivedInvoicesForTheOffice() throws Exception {
+        as("ACCOUNTANT", get("/api/imports"), ALLOWED);
+        as("PROJECT_MANAGER", post("/api/imports/" + ANY + "/reject"), ALLOWED);
+        as("FOREMAN", get("/api/imports"), DENIED);
+        as("FOREMAN", get("/api/imports/" + ANY + "/file"), DENIED);
+        as("SALES_MANAGER", get("/api/supplier-invoices"), ALLOWED);
+        as("SALES_MANAGER", post("/api/supplier-invoices/" + ANY + "/paid"), DENIED);
+        as("ACCOUNTANT", post("/api/supplier-invoices/" + ANY + "/paid"), ALLOWED);
+        as("FOREMAN", get("/api/supplier-invoices"), DENIED);
+    }
+
+    @Test
     void analyticsForTheOfficeOnly() throws Exception {
         as("ACCOUNTANT", get("/api/analytics/margin"), ALLOWED);
         as("PROJECT_MANAGER", get("/api/analytics/health"), ALLOWED);

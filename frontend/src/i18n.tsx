@@ -838,6 +838,8 @@ const ru = {
   'an.more': 'и ещё {n}',
   'an.missing': 'не хватает: {n}',
   'an.warn': 'проверить: {n}',
+  'ev.check.SUPPLIER_INVOICE_MISSING.WARN': 'Нет полученной фактуры от {name}',
+  'ev.check.SUPPLIER_INVOICES.OK': 'Фактуры получены от всех исполнителей и поставщиков ({count})',
 };
 
 type Dict = Record<keyof typeof ru, string>;
@@ -1677,6 +1679,8 @@ const cs: Dict = {
   'an.more': 'a další {n}',
   'an.missing': 'chybí: {n}',
   'an.warn': 'zkontrolovat: {n}',
+  'ev.check.SUPPLIER_INVOICE_MISSING.WARN': 'Od {name} nebyla přijata žádná faktura',
+  'ev.check.SUPPLIER_INVOICES.OK': 'Faktury přijaty od všech subdodavatelů a dodavatelů ({count})',
 };
 
 const en: Dict = {
@@ -2514,6 +2518,8 @@ const en: Dict = {
   'an.more': 'and {n} more',
   'an.missing': 'missing: {n}',
   'an.warn': 'to check: {n}',
+  'ev.check.SUPPLIER_INVOICE_MISSING.WARN': 'No invoice received from {name}',
+  'ev.check.SUPPLIER_INVOICES.OK': 'Invoices received from every subcontractor and supplier ({count})',
 };
 
 export const DICTS: Record<Lang, Dict> = { ru, cs, en };

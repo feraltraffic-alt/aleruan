@@ -45,9 +45,11 @@ public class DealService implements DealCatalog {
     private final AuditService audit;
     private final CurrentActor actor;
     private final Clock clock;
+    private final com.aleruan.dealos.platform.files.FileStore files;
 
     DealService(DealRepository deals, ChangeOrderRepository changeOrders, CounterpartyLookup counterparties,
-                AuditService audit, CurrentActor actor, Clock clock) {
+                AuditService audit, CurrentActor actor, Clock clock, com.aleruan.dealos.platform.files.FileStore files) {
+        this.files = files;
         this.deals = deals;
         this.changeOrders = changeOrders;
         this.counterparties = counterparties;
@@ -242,6 +244,13 @@ public class DealService implements DealCatalog {
                 .map(l -> new LineSummary(l.getId(), l.getPosition(), l.getKind().name(), l.getDescription(),
                         l.getWorkType(), l.getUnit(), l.getQuantity(), l.getUnitCost(), l.getSubcontractorId()))
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public UUID attachDocument(UUID dealId, String fileName, byte[] data) {
+        get(dealId);
+        return files.store(DealDocuments.OWNER, dealId, fileName, data).id();
     }
 
     @Override
