@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api, type Site, type SiteDetails, type SiteStatus, type SiteTask, type TaskData } from '../api';
 import { Drawer } from '../components/Drawer';
 import { PinPicker, SitesMap, type GeoResult } from '../components/GoogleMap';
@@ -15,6 +15,8 @@ import { localToday } from '../dates';
 import { useI18n } from '../i18n';
 import { parseNum } from '../numbers';
 import { StagesSection } from './Stages';
+import { DiarySection } from './SiteDiary';
+import { DefectsSection } from './SiteDefects';
 
 export function SiteDetailPage() {
   const { id = '' } = useParams();
@@ -25,6 +27,9 @@ export function SiteDetailPage() {
   const [editing, setEditing] = useState(false);
   const [task, setTask] = useState<SiteTask | 'new' | null>(null);
   const [today] = useState(localToday);
+  const [params, setParams] = useSearchParams();
+  const [handover, setHandover] = useState(false);
+  const tab = (TABS as readonly string[]).includes(params.get('tab') ?? '') ? params.get('tab') as Tab : 'schedule';
 
   if (site.error) return <LoadError message={site.error} onRetry={site.reload} />;
   const s = site.data;
@@ -65,11 +70,30 @@ export function SiteDetailPage() {
             <Progress pct={s.progressPct} late={s.lateTasks > 0} /> {s.progressPct} %
             {s.lateTasks > 0 && <span className="sub neg">{t('site.lateTasks', { n: s.lateTasks })}</span>}
           </dd></div>
+          <div><dt>{t('site.handover')}</dt><dd>
+            {s.handoverDate ? (
+              <>{t('site.handedOver', { date: day(s.handoverDate) })}
+                {s.warrantyUntil && <span className="sub">{t('site.warrantyTill', { date: day(s.warrantyUntil) })}</span>}</>
+            ) : t('site.notHandedOver')}{' '}
+            <button className="linkish" onClick={() => setHandover(true)}>{s.handoverDate ? t('deal.change') : t('site.markHandover')}</button>
+          </dd></div>
           {s.notes && <div className="wide"><dt>{t('site.notes')}</dt><dd>{s.notes}</dd></div>}
         </dl>
         {hasPin && <SingleSiteMap site={s} />}
       </div>
 
+      <div className="tabs" role="tablist" aria-label={t('site.sections')}>
+        {TABS.map((k) => (
+          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''}
+            onClick={() => setParams((p) => { p.set('tab', k); return p; }, { replace: true })}>
+            {t(`site.tab.${k}`)}
+            {k === 'defects' && s.openDefects > 0 && <span className="count">{s.openDefects}</span>}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'schedule' && (
+        <>
       <section className="section">
         <div className="section-head">
           <div>
@@ -119,13 +143,62 @@ export function SiteDetailPage() {
           )}
         </div>
       </section>
+        </>
+      )}
+      {tab === 'acceptance' && <StagesSection site={s} />}
+      {tab === 'diary' && <DiarySection site={s} />}
+      {tab === 'defects' && <DefectsSection site={s} onChanged={site.reload} />}
 
-      <StagesSection site={s} />
 
+      {handover && <HandoverForm site={s} onClose={() => setHandover(false)}
+        onSaved={(n) => { site.setData(n); setHandover(false); }} />}
       {editing && <SiteForm site={s} onClose={() => setEditing(false)} onSaved={(n) => { site.setData(n); setEditing(false); }} />}
       {task && <TaskForm site={s} task={task === 'new' ? undefined : task} onClose={() => setTask(null)}
         onSaved={(n) => { site.setData(n); setTask(null); }} />}
     </>
+  );
+}
+
+const TABS = ['schedule', 'acceptance', 'diary', 'defects'] as const;
+type Tab = (typeof TABS)[number];
+
+function HandoverForm({ site, onClose, onSaved }: { site: Site; onClose(): void; onSaved(s: Site): void }) {
+  const { t } = useI18n();
+  const action = useAction();
+  const [today] = useState(localToday);
+  const [date, setDate] = useState(site.handoverDate ?? today);
+  const [months, setMonths] = useState(String(site.warrantyMonths ?? 24));
+  const [error, setError] = useState<string | null>(null);
+  const save = async (e: FormEvent, clear = false) => {
+    e.preventDefault();
+    const m = Number(months);
+    if (!clear && (!date || date > today)) { setError(t('site.err.handoverDate')); return; }
+    if (!clear && !(Number.isInteger(m) && m >= 0 && m <= 120)) { setError(t('site.err.warranty')); return; }
+    const n = await action.run(() => api.setHandover(site.id, clear ? null : date, clear ? null : m));
+    if (n) onSaved(n);
+  };
+  return (
+    <Drawer title={t('site.markHandover')} onClose={onClose}>
+      <form onSubmit={save} noValidate>
+        <p className="lead">{t('site.handoverLead')}</p>
+        <div className="grid2">
+          <div className="field">
+            <label htmlFor="h-date">{t('site.handoverDate')}</label>
+            <input id="h-date" type="date" className="input" value={date} max={today} onChange={(e) => { setDate(e.target.value); setError(null); }} />
+          </div>
+          <div className="field">
+            <label htmlFor="h-months">{t('site.warrantyMonths')}</label>
+            <input id="h-months" className="input" inputMode="numeric" value={months} onChange={(e) => { setMonths(e.target.value); setError(null); }} />
+          </div>
+        </div>
+        {(error || action.error) && <p className="note bad" role="alert">{error ?? action.error}</p>}
+        <div className="actions">
+          <button className="btn primary" disabled={action.busy}>{t('common.save')}</button>
+          {site.handoverDate && <button type="button" className="btn" onClick={(e) => save(e, true)}>{t('site.clearHandover')}</button>}
+          <button type="button" className="btn" onClick={onClose}>{t('form.cancel')}</button>
+        </div>
+      </form>
+    </Drawer>
   );
 }
 

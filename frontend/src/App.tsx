@@ -13,6 +13,7 @@ import { RfqDetailPage } from './pages/RfqDetail';
 import { SiteDetailPage } from './pages/SiteDetail';
 import { SitesPage } from './pages/Sites';
 import { WorkloadPage } from './pages/Workload';
+import { DefectsPage } from './pages/Defects';
 import { ReferencePage } from './pages/Reference';
 
 export function AppRoutes() {
@@ -30,6 +31,7 @@ export function AppRoutes() {
         <Route path="sites" element={<SitesPage />} />
         <Route path="sites/:id" element={<SiteDetailPage />} />
         <Route path="workload" element={<WorkloadPage />} />
+        <Route path="defects" element={<DefectsPage />} />
         <Route path="audit" element={<AuditPage />} />
         <Route path="reference" element={<ReferencePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -31,6 +31,7 @@ describe('acceptance screen', () => {
   it('adds a stage by share of the contract, hands it over and records the decision', async () => {
     render(<I18nProvider><MemoryRouter initialEntries={['/sites']}><AppRoutes /></MemoryRouter></I18nProvider>);
     fireEvent.click(await screen.findByText('Hala magazynowa, Gliwice'));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Приёмка' }));
     const add = await screen.findByRole('button', { name: 'Добавить этап' });
     await waitFor(() => expect(add).toBeEnabled());
     fireEvent.click(add);

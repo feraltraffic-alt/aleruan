@@ -229,6 +229,30 @@ export interface Site {
   projectManager: string | null; foreman: string | null; plannedStart: string | null; plannedEnd: string | null;
   status: SiteStatus; notes: string | null; customer: SiteParty | null; progressPct: number; lateTasks: number;
   workTypes: string[]; createdAt: string; tasks: SiteTask[];
+  handoverDate: string | null; warrantyMonths: number | null; warrantyUntil: string | null; openDefects: number;
+}
+
+export interface FileRef { id: string; fileName: string; contentType: string; sizeBytes: number; uploadedAt: string; uploadedBy: string | null }
+export type PhotoOwner = 'diary' | 'defects';
+
+export interface DiaryEntry {
+  id: string; entryDate: string; weather: string | null; workers: number | null; text: string; correctsId: string | null;
+  correctedBy: string[]; author: string | null; createdAt: string; editedAt: string | null; editable: boolean; photos: FileRef[];
+}
+export interface DiaryData { entryDate: string; weather: string | null; workers: number | null; text: string; correctsId: string | null }
+
+export type DefectSeverity = 'MINOR' | 'MAJOR' | 'CRITICAL';
+export type DefectStatus = 'OPEN' | 'FIXED' | 'CLOSED' | 'DISMISSED';
+export interface Defect {
+  id: string; siteId: string; siteName: string; seq: number; title: string; description: string | null; location: string | null;
+  severity: DefectSeverity; subcontractor: { id: string; legalName: string; checkStatus: CheckStatus | null } | null;
+  stageId: string | null; foundOn: string; dueDate: string | null; warranty: boolean; status: DefectStatus;
+  nextStatuses: DefectStatus[]; overdue: boolean; fixedAt: string | null; fixNote: string | null; closedAt: string | null;
+  closedBy: string | null; createdAt: string; createdBy: string | null; photos: FileRef[];
+}
+export interface DefectData {
+  title: string; description: string | null; location: string | null; severity: DefectSeverity; subcontractorId: string | null;
+  stageId: string | null; foundOn: string; dueDate: string | null;
 }
 
 export interface SiteDetails {
@@ -334,6 +358,19 @@ export interface Api {
   decideStage(id: string, decision: StageDecision): Promise<Stage>;
   /** Handover protocol (PDF; HTML stand-in in demo mode). */
   protocolFile(id: string): Promise<Blob>;
+
+  setHandover(siteId: string, handoverDate: string | null, warrantyMonths: number | null): Promise<Site>;
+  diary(siteId: string): Promise<DiaryEntry[]>;
+  addDiaryEntry(siteId: string, data: DiaryData): Promise<DiaryEntry>;
+  editDiaryEntry(id: string, data: DiaryData): Promise<DiaryEntry>;
+  siteDefects(siteId: string): Promise<Defect[]>;
+  unresolvedDefects(): Promise<Defect[]>;
+  reportDefect(siteId: string, data: DefectData): Promise<Defect>;
+  editDefect(id: string, data: DefectData): Promise<Defect>;
+  moveDefect(id: string, status: DefectStatus, note: string | null): Promise<Defect>;
+  uploadPhoto(owner: PhotoOwner, ownerId: string, file: Blob, fileName: string): Promise<FileRef>;
+  removePhoto(owner: PhotoOwner, ownerId: string, fileId: string): Promise<void>;
+  fileBlob(id: string): Promise<Blob>;
 
   openOffer(token: string): Promise<OfferPage>;
   submitOffer(token: string, prices: Record<string, number>, note: string): Promise<OfferPage>;

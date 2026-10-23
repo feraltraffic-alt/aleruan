@@ -46,7 +46,10 @@ export function SitesPage() {
           <h1>{t('site.title')}</h1>
           <p className="lead">{t('site.lead')}</p>
         </div>
-        <Link className="btn" to="/workload">{t('load.title')}</Link>
+        <div className="moves">
+          <Link className="btn" to="/defects">{t('defect.overview')}</Link>
+          <Link className="btn" to="/workload">{t('load.title')}</Link>
+        </div>
       </div>
       <div className="toolbar filters">
         <select className="select" value={filter.status ?? ''} onChange={(e) => set('status', e.target.value as SiteStatus)}

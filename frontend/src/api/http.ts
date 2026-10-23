@@ -133,6 +133,34 @@ export const httpApi: Api = {
     return res.blob();
   },
 
+  setHandover: (siteId, handoverDate, warrantyMonths) =>
+    request(`/sites/${siteId}/handover`, json('PUT', { handoverDate, warrantyMonths })),
+  diary: (siteId) => request(`/sites/${siteId}/diary`),
+  addDiaryEntry: (siteId, data) => request(`/sites/${siteId}/diary`, json('POST', data)),
+  editDiaryEntry: (id, data) => request(`/diary/${id}`, json('PUT', data)),
+  siteDefects: (siteId) => request(`/sites/${siteId}/defects`),
+  unresolvedDefects: () => request('/defects'),
+  reportDefect: (siteId, data) => request(`/sites/${siteId}/defects`, json('POST', data)),
+  editDefect: (id, data) => request(`/defects/${id}`, json('PUT', data)),
+  moveDefect: (id, status, note) => request(`/defects/${id}/status`, json('POST', { status, note })),
+  uploadPhoto: async (owner, ownerId, file, fileName) => {
+    const form = new FormData();
+    form.append('file', file, fileName);
+    const res = await fetch(`/api/${owner}/${ownerId}/photos`, { method: 'POST', body: form, headers: await authHeaders() });
+    if (!res.ok) {
+      let detail = res.statusText;
+      try { const b = await res.json(); detail = b.detail ?? b.title ?? detail; } catch { /* not JSON */ }
+      throw new ApiError(res.status, detail);
+    }
+    return res.json();
+  },
+  removePhoto: (owner, ownerId, fileId) => request(`/${owner}/${ownerId}/photos/${fileId}`, json('DELETE')),
+  fileBlob: async (id) => {
+    const res = await fetch(`/api/files/${id}`, { headers: await authHeaders() });
+    if (!res.ok) throw new ApiError(res.status, res.statusText);
+    return res.blob();
+  },
+
   openOffer: (token) => request(`/public/rfq/${token}`),
   submitOffer: (token, prices, note) => request(`/public/rfq/${token}/offer`, json('POST', { prices, note })),
 };
