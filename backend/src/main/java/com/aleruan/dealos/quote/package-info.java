@@ -4,5 +4,6 @@
  */
 @org.springframework.modulith.ApplicationModule(
         displayName = "Quote",
-        allowedDependencies = {"platform::audit", "platform::web", "platform::security", "deal", "counterparty"})
+        allowedDependencies = {"platform::audit", "platform::web", "platform::security", "platform::documents", "deal",
+                "counterparty"})
 package com.aleruan.dealos.quote;

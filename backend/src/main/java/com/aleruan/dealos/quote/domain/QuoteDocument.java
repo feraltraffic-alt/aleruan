@@ -1,5 +1,6 @@
 package com.aleruan.dealos.quote.domain;
 
+import com.aleruan.dealos.platform.documents.DocLanguage;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -12,7 +13,7 @@ import java.util.List;
 public record QuoteDocument(
         String number,
         int version,
-        QuoteLanguage language,
+        DocLanguage language,
         LocalDate issuedOn,
         LocalDate validUntil,
         String issuedBy,

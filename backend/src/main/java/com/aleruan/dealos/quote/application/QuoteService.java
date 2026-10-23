@@ -1,5 +1,7 @@
 package com.aleruan.dealos.quote.application;
 
+import com.aleruan.dealos.platform.documents.CompanyProfile;
+import com.aleruan.dealos.platform.documents.DocLanguage;
 import com.aleruan.dealos.counterparty.CounterpartyLookup;
 import com.aleruan.dealos.counterparty.CounterpartySummary;
 import com.aleruan.dealos.deal.DealCatalog;
@@ -10,7 +12,6 @@ import com.aleruan.dealos.platform.security.CurrentActor;
 import com.aleruan.dealos.platform.web.NotFoundException;
 import com.aleruan.dealos.quote.domain.Quote;
 import com.aleruan.dealos.quote.domain.QuoteDocument;
-import com.aleruan.dealos.quote.domain.QuoteLanguage;
 import com.aleruan.dealos.quote.domain.QuoteRepository;
 import com.aleruan.dealos.quote.domain.QuoteSummary;
 import com.aleruan.dealos.quote.domain.QuoteTexts;
@@ -41,12 +42,12 @@ public class QuoteService {
     private static final ZoneId PRAGUE = ZoneId.of("Europe/Prague");
 
     /** What the manager chooses when issuing; nulls fall back to the suggestion. */
-    public record IssueRequest(QuoteLanguage language, Integer validDays, VatMode vatMode, BigDecimal vatRate,
+    public record IssueRequest(DocLanguage language, Integer validDays, VatMode vatMode, BigDecimal vatRate,
                                String terms) {
     }
 
     /** Defaults for the issue form: language, VAT treatment and why. */
-    public record Defaults(QuoteLanguage language, VatMode vatMode, BigDecimal vatRate, VatAdvisor.Reason reason,
+    public record Defaults(DocLanguage language, VatMode vatMode, BigDecimal vatRate, VatAdvisor.Reason reason,
                            int validDays) {
     }
 
@@ -81,7 +82,7 @@ public class QuoteService {
         DealSummary deal = deal(dealId);
         CounterpartySummary customer = customer(deal);
         VatAdvisor.Suggestion s = suggestion(deal, customer);
-        return new Defaults(QuoteLanguage.forCountry(customer.country()), s.mode(), s.rate(), s.reason(), defaultValidDays);
+        return new Defaults(DocLanguage.forCountry(customer.country()), s.mode(), s.rate(), s.reason(), defaultValidDays);
     }
 
     @Transactional(readOnly = true)
@@ -114,7 +115,7 @@ public class QuoteService {
         if (rate.signum() < 0 || rate.compareTo(BigDecimal.valueOf(100)) >= 0) {
             throw new IllegalArgumentException("VAT rate must be between 0 and 100");
         }
-        QuoteLanguage language = request.language() != null ? request.language() : QuoteLanguage.forCountry(customer.country());
+        DocLanguage language = request.language() != null ? request.language() : DocLanguage.forCountry(customer.country());
         int validDays = request.validDays() != null ? request.validDays() : defaultValidDays;
         if (validDays < 1 || validDays > 365) {
             throw new IllegalArgumentException("A quote is valid for 1 to 365 days");
@@ -157,13 +158,13 @@ public class QuoteService {
      * deal's VAT treatment. Not stored: the approval itself is recorded on the change order.
      */
     @Transactional(readOnly = true)
-    public byte[] changeOrderPdf(UUID changeOrderId, QuoteLanguage requested) {
+    public byte[] changeOrderPdf(UUID changeOrderId, DocLanguage requested) {
         DealCatalog.ChangeOrderSummary co = deals.changeOrder(changeOrderId)
                 .orElseThrow(() -> new NotFoundException("Change order " + changeOrderId + " not found"));
         DealSummary deal = deal(co.dealId());
         CounterpartySummary customer = customer(deal);
         VatAdvisor.Suggestion vat = suggestion(deal, customer);
-        QuoteLanguage language = requested != null ? requested : QuoteLanguage.forCountry(customer.country());
+        DocLanguage language = requested != null ? requested : DocLanguage.forCountry(customer.country());
         List<QuoteDocument.Line> lines = co.lines().stream()
                 .map(l -> new QuoteDocument.Line(l.position(), l.description(), l.unit(), l.quantity(), l.unitPrice(), l.total()))
                 .toList();

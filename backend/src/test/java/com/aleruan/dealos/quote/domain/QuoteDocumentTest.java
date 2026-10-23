@@ -1,5 +1,6 @@
 package com.aleruan.dealos.quote.domain;
 
+import com.aleruan.dealos.platform.documents.DocLanguage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -22,7 +23,7 @@ class QuoteDocumentTest {
             new QuoteDocument.Line(3, "Elektro", "kpl", BigDecimal.ONE, new BigDecimal("8200"), new BigDecimal("8200.00")),
             new QuoteDocument.Line(4, "Materiál", "kpl", BigDecimal.ONE, new BigDecimal("3937.50"), new BigDecimal("3937.50")));
 
-    static QuoteDocument document(QuoteLanguage lang, VatMode mode, BigDecimal rate, String customerCountry) {
+    static QuoteDocument document(DocLanguage lang, VatMode mode, BigDecimal rate, String customerCountry) {
         QuoteDocument.Amounts a = QuoteDocument.amounts(LINES, mode, rate);
         return new QuoteDocument("Q-2026-0001", 2, lang, LocalDate.of(2026, 10, 23), LocalDate.of(2026, 11, 22), "lena",
                 new QuoteDocument.Party("Aleruan-industry s.r.o.", "CZ", "14220997", "CZ14220997", "Malešická 2855/2b, Praha 3",
@@ -47,7 +48,7 @@ class QuoteDocumentTest {
 
     @Test
     void htmlIsWellFormedEscapedAndLocalised() throws Exception {
-        for (QuoteLanguage lang : QuoteLanguage.values()) {
+        for (DocLanguage lang : DocLanguage.values()) {
             String html = QuoteHtml.render(document(lang, VatMode.REVERSE_CHARGE_EU, BigDecimal.ZERO, "PL"), null, "Plex");
             DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
             assertNotNull(f.newDocumentBuilder().parse(new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8))));
@@ -58,22 +59,22 @@ class QuoteDocumentTest {
             assertTrue(html.contains("194"), "reverse charge note cites the article");
             assertFalse(html.contains("<Q2>"));
         }
-        String cs = QuoteHtml.render(document(QuoteLanguage.CS, VatMode.STANDARD, new BigDecimal("21"), "PL"), null, null);
+        String cs = QuoteHtml.render(document(DocLanguage.CS, VatMode.STANDARD, new BigDecimal("21"), "PL"), null, null);
         assertTrue(cs.contains("Cenová nabídka"));
         assertTrue(cs.contains("24 931,69 EUR"));
         assertTrue(cs.contains("DPH 21 %"));
         assertTrue(cs.contains("IBAN PL23 1020 1013 0000 0202 0481 2139"));
         assertTrue(cs.contains("Záloha 30 %<br/>před zahájením"));
-        String en = QuoteHtml.render(document(QuoteLanguage.EN, VatMode.STANDARD, new BigDecimal("21"), "PL"), null, null);
+        String en = QuoteHtml.render(document(DocLanguage.EN, VatMode.STANDARD, new BigDecimal("21"), "PL"), null, null);
         assertTrue(en.contains("24,931.69 EUR"));
         assertTrue(en.contains("23 Oct 2026"));
-        String de = QuoteHtml.render(document(QuoteLanguage.DE, VatMode.STANDARD, new BigDecimal("21"), "PL"), null, null);
+        String de = QuoteHtml.render(document(DocLanguage.DE, VatMode.STANDARD, new BigDecimal("21"), "PL"), null, null);
         assertTrue(de.contains("24.931,69 EUR"));
     }
 
     @Test
     void changeOrderSheetHasReasonScheduleImpactAndSignatureBlock() throws Exception {
-        QuoteDocument q = document(QuoteLanguage.CS, VatMode.STANDARD, new BigDecimal("21"), "PL");
+        QuoteDocument q = document(DocLanguage.CS, VatMode.STANDARD, new BigDecimal("21"), "PL");
         QuoteDocument co = new QuoteDocument("D-2026-0003-C1", 1, q.language(), q.issuedOn(), q.validUntil(), q.issuedBy(),
                 q.supplier(), q.customer(), q.subject(), q.siteCountry(), q.currency(), q.lines(), q.vatMode(), q.vatRate(),
                 q.subtotal(), q.vatAmount(), q.total(), q.vatNote(), null, q.bank(),
@@ -88,7 +89,7 @@ class QuoteDocumentTest {
         assertTrue(html.contains("Odsouhlasení objednatelem"));
         assertTrue(html.contains(">Podpis<"));
         assertFalse(QuoteHtml.render(q, null, null).contains("Odsouhlasení objednatelem"));
-        String none = QuoteHtml.render(new QuoteDocument("X", 1, QuoteLanguage.EN, q.issuedOn(), q.validUntil(), null,
+        String none = QuoteHtml.render(new QuoteDocument("X", 1, DocLanguage.EN, q.issuedOn(), q.validUntil(), null,
                 q.supplier(), q.customer(), "s", null, "EUR", q.lines(), q.vatMode(), q.vatRate(), q.subtotal(),
                 q.vatAmount(), q.total(), null, null, null, new QuoteDocument.ChangeOrder(null, 0)), null, null);
         assertTrue(none.contains("no change"));
@@ -96,15 +97,15 @@ class QuoteDocumentTest {
 
     @Test
     void vatNotesExistForEveryLanguageExceptStandard() {
-        for (QuoteLanguage lang : QuoteLanguage.values()) {
+        for (DocLanguage lang : DocLanguage.values()) {
             assertNull(QuoteTexts.vatNote(lang, VatMode.STANDARD, null));
             assertTrue(QuoteTexts.vatNote(lang, VatMode.REVERSE_CHARGE_CZ, null).contains("92e"));
             assertTrue(QuoteTexts.vatNote(lang, VatMode.REVERSE_CHARGE_EU, null).contains("196"));
             assertNotNull(QuoteTexts.vatNote(lang, VatMode.OUTSIDE_SCOPE, null));
         }
-        assertEquals(QuoteLanguage.CS, QuoteLanguage.forCountry("sk"));
-        assertEquals(QuoteLanguage.DE, QuoteLanguage.forCountry("AT"));
-        assertEquals(QuoteLanguage.EN, QuoteLanguage.forCountry("BE"));
-        assertEquals(QuoteLanguage.EN, QuoteLanguage.forCountry(null));
+        assertEquals(DocLanguage.CS, DocLanguage.forCountry("sk"));
+        assertEquals(DocLanguage.DE, DocLanguage.forCountry("AT"));
+        assertEquals(DocLanguage.EN, DocLanguage.forCountry("BE"));
+        assertEquals(DocLanguage.EN, DocLanguage.forCountry(null));
     }
 }

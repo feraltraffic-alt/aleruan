@@ -1,8 +1,8 @@
 package com.aleruan.dealos.quote.api;
 
+import com.aleruan.dealos.platform.documents.DocLanguage;
 import com.aleruan.dealos.quote.application.QuoteService;
 import com.aleruan.dealos.quote.domain.Quote;
-import com.aleruan.dealos.quote.domain.QuoteLanguage;
 import com.aleruan.dealos.quote.domain.QuoteSummary;
 import com.aleruan.dealos.quote.domain.VatMode;
 import jakarta.validation.constraints.DecimalMax;
@@ -31,11 +31,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api")
 class QuoteController {
 
-    record IssueBody(QuoteLanguage language, @Min(1) @Max(365) Integer validDays, VatMode vatMode,
+    record IssueBody(DocLanguage language, @Min(1) @Max(365) Integer validDays, VatMode vatMode,
                      @DecimalMin("0") @DecimalMax("99.99") BigDecimal vatRate, @Size(max = 4000) String terms) {
     }
 
-    record QuoteView(UUID id, String number, int version, QuoteLanguage language, VatMode vatMode, BigDecimal vatRate,
+    record QuoteView(UUID id, String number, int version, DocLanguage language, VatMode vatMode, BigDecimal vatRate,
                      String currency, BigDecimal subtotal, BigDecimal vatAmount, BigDecimal total, LocalDate issuedOn,
                      LocalDate validUntil, Instant issuedAt, String issuedBy, String pdfSha256) {
 
@@ -87,7 +87,7 @@ class QuoteController {
 
     @GetMapping("/change-orders/{id}/pdf")
     ResponseEntity<byte[]> changeOrderPdf(@PathVariable UUID id,
-                                          @org.springframework.web.bind.annotation.RequestParam(required = false) QuoteLanguage language) {
+                                          @org.springframework.web.bind.annotation.RequestParam(required = false) DocLanguage language) {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline().filename("change-order.pdf").build().toString())

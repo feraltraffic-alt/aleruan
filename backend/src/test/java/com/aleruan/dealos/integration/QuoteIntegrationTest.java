@@ -1,5 +1,6 @@
 package com.aleruan.dealos.integration;
 
+import com.aleruan.dealos.platform.documents.DocLanguage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -15,7 +16,6 @@ import com.aleruan.dealos.deal.domain.LineKind;
 import com.aleruan.dealos.platform.audit.AuditService;
 import com.aleruan.dealos.quote.application.QuoteService;
 import com.aleruan.dealos.quote.domain.Quote;
-import com.aleruan.dealos.quote.domain.QuoteLanguage;
 import com.aleruan.dealos.quote.domain.VatAdvisor;
 import com.aleruan.dealos.quote.domain.VatMode;
 import java.math.BigDecimal;
@@ -53,11 +53,11 @@ class QuoteIntegrationTest extends IntegrationTestBase {
                 BigDecimal.ONE, new BigDecimal("6800"), null, new BigDecimal("8200"), null));
 
         QuoteService.Defaults defaults = quotes.defaults(deal.getId());
-        assertEquals(QuoteLanguage.PL, defaults.language());
+        assertEquals(DocLanguage.PL, defaults.language());
         assertEquals(VatMode.REVERSE_CHARGE_EU, defaults.vatMode());
         assertEquals(VatAdvisor.Reason.SITE_IN_OTHER_EU_STATE, defaults.reason());
 
-        Quote v1 = quotes.issue(deal.getId(), new QuoteService.IssueRequest(QuoteLanguage.CS, 14, null, null,
+        Quote v1 = quotes.issue(deal.getId(), new QuoteService.IssueRequest(DocLanguage.CS, 14, null, null,
                 "Záloha 30 % před zahájením"));
         assertEquals(1, v1.getVersion());
         assertTrue(v1.getNumber().matches("Q-\\d{4}-\\d{4}"));
@@ -79,7 +79,7 @@ class QuoteIntegrationTest extends IntegrationTestBase {
         assertTrue(text.contains("194"), "reverse charge note");
 
         // a second version with Czech VAT chosen by hand
-        Quote v2 = quotes.issue(deal.getId(), new QuoteService.IssueRequest(QuoteLanguage.EN, null, VatMode.STANDARD,
+        Quote v2 = quotes.issue(deal.getId(), new QuoteService.IssueRequest(DocLanguage.EN, null, VatMode.STANDARD,
                 null, null));
         assertEquals(2, v2.getVersion());
         assertEquals(v1.getNumber() + "/2", v2.displayNumber());
@@ -109,6 +109,6 @@ class QuoteIntegrationTest extends IntegrationTestBase {
                 null, "CZK", new BigDecimal("20")));
         QuoteService.Defaults d = quotes.defaults(deal.getId());
         assertEquals(VatMode.REVERSE_CHARGE_CZ, d.vatMode());
-        assertEquals(QuoteLanguage.CS, d.language());
+        assertEquals(DocLanguage.CS, d.language());
     }
 }

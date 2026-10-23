@@ -1,9 +1,9 @@
-package com.aleruan.dealos.quote.domain;
+package com.aleruan.dealos.platform.documents;
 
 import java.util.Locale;
 
-/** Languages a quote can be issued in. */
-public enum QuoteLanguage {
+/** Languages customer documents are issued in. */
+public enum DocLanguage {
     CS(Locale.forLanguageTag("cs-CZ")),
     EN(Locale.UK),
     PL(Locale.forLanguageTag("pl-PL")),
@@ -11,7 +11,7 @@ public enum QuoteLanguage {
 
     private final Locale locale;
 
-    QuoteLanguage(Locale locale) {
+    DocLanguage(Locale locale) {
         this.locale = locale;
     }
 
@@ -20,7 +20,7 @@ public enum QuoteLanguage {
     }
 
     /** The customer's own language when we have it, English otherwise. */
-    public static QuoteLanguage forCountry(String country) {
+    public static DocLanguage forCountry(String country) {
         if (country == null) {
             return EN;
         }

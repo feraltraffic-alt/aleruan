@@ -1,5 +1,6 @@
 package com.aleruan.dealos.quote.domain;
 
+import com.aleruan.dealos.platform.documents.DocLanguage;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,7 +33,7 @@ public class Quote {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, updatable = false)
-    private QuoteLanguage language;
+    private DocLanguage language;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "vat_mode", nullable = false, updatable = false)
@@ -107,7 +108,7 @@ public class Quote {
     public UUID getDealId() { return dealId; }
     public String getNumber() { return number; }
     public int getVersion() { return version; }
-    public QuoteLanguage getLanguage() { return language; }
+    public DocLanguage getLanguage() { return language; }
     public VatMode getVatMode() { return vatMode; }
     public BigDecimal getVatRate() { return vatRate; }
     public String getCurrency() { return currency; }

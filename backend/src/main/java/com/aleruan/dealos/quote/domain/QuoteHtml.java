@@ -1,11 +1,9 @@
 package com.aleruan.dealos.quote.domain;
 
+import com.aleruan.dealos.platform.documents.DocFormat;
+import com.aleruan.dealos.platform.documents.DocLanguage;
 import com.aleruan.dealos.quote.domain.QuoteTexts.Key;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.time.format.DateTimeFormatter;
 
 /**
  * Renders a quote as strict XHTML with CSS 2.1 only, so the same markup works in the PDF renderer
@@ -21,7 +19,7 @@ public final class QuoteHtml {
      * @param fontFamily font family registered with the renderer (falls back to sans-serif)
      */
     public static String render(QuoteDocument d, String logoSrc, String fontFamily) {
-        QuoteLanguage lang = d.language();
+        DocLanguage lang = d.language();
         String title = l(lang, d.hasChangeOrder() ? Key.CO_TITLE : Key.TITLE);
         StringBuilder h = new StringBuilder(8_000);
         h.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE html>\n")
@@ -185,7 +183,7 @@ public final class QuoteHtml {
             """.formatted(footer, family, cssText(l(d.language(), Key.PAGE)), family, family);
     }
 
-    private static String party(QuoteLanguage lang, String label, QuoteDocument.Party p) {
+    private static String party(DocLanguage lang, String label, QuoteDocument.Party p) {
         StringBuilder s = new StringBuilder("<div class=\"label\">").append(esc(label)).append("</div>")
                 .append("<div class=\"pname\">").append(esc(p.name())).append("</div>");
         if (p.address() != null) {
@@ -210,62 +208,32 @@ public final class QuoteHtml {
         return "<tr><td class=\"k\">" + esc(k) + "</td><td class=\"v\">" + esc(v) + "</td></tr>";
     }
 
-    private static String l(QuoteLanguage lang, Key key) {
+    private static String l(DocLanguage lang, Key key) {
         return QuoteTexts.label(lang, key);
     }
 
     private static String date(QuoteDocument d, java.time.LocalDate day) {
-        DateTimeFormatter f = d.language() == QuoteLanguage.EN
-                ? DateTimeFormatter.ofPattern("d MMM yyyy", d.language().locale())
-                : DateTimeFormatter.ofPattern("dd.MM.yyyy");
-        return day.format(f);
+        return DocFormat.date(d.language(), day);
     }
 
-    static String money(QuoteLanguage lang, BigDecimal v) {
-        return format(lang, v.setScale(2, RoundingMode.HALF_UP), "#,##0.00");
+    static String money(DocLanguage lang, BigDecimal v) {
+        return DocFormat.money(lang, v);
     }
 
-    static String qty(QuoteLanguage lang, BigDecimal v) {
-        return format(lang, v, "#,##0.####");
-    }
-
-    private static String format(QuoteLanguage lang, BigDecimal v, String pattern) {
-        DecimalFormatSymbols sym = DecimalFormatSymbols.getInstance(lang.locale());
-        if (lang == QuoteLanguage.CS || lang == QuoteLanguage.PL) {
-            sym.setGroupingSeparator(' '); // narrow no-break space is missing in many fonts
-        }
-        return new DecimalFormat(pattern, sym).format(v);
+    static String qty(DocLanguage lang, BigDecimal v) {
+        return DocFormat.qty(lang, v);
     }
 
     /** Text for a CSS string inside an XHTML style element. */
     private static String cssText(String s) {
-        return esc(s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", " "));
+        return DocFormat.cssText(s);
     }
 
     private static String grouped(String iban) {
-        return iban.replaceAll("\\s", "").replaceAll("(.{4})(?!$)", "$1 ");
+        return DocFormat.iban(iban);
     }
 
     static String esc(String s) {
-        if (s == null) {
-            return "";
-        }
-        StringBuilder b = new StringBuilder(s.length());
-        for (char c : s.toCharArray()) {
-            switch (c) {
-                case '&' -> b.append("&amp;");
-                case '<' -> b.append("&lt;");
-                case '>' -> b.append("&gt;");
-                case '"' -> b.append("&quot;");
-                case '\'' -> b.append("&#39;");
-                default -> {
-                    if (c < 0x20 && c != '\n' && c != '\t') {
-                        continue; // control characters are not allowed in XML
-                    }
-                    b.append(c);
-                }
-            }
-        }
-        return b.toString();
+        return DocFormat.esc(s);
     }
 }
