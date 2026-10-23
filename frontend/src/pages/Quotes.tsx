@@ -44,7 +44,7 @@ export function QuotesSection({ deal, onIssued }: { deal: Deal; onIssued(): void
         )}
       </div>
       {openError && <p className="note bad" role="alert">{openError}</p>}
-      {quotes.error ? <LoadError message={quotes.error} onRetry={quotes.reload} /> : (
+      {quotes.error ? <LoadError message={quotes.error} onRetry={quotes.reload} /> : !quotes.data ? null : (
         <div className="panel table-wrap">
           {quotes.data?.length === 0 ? <p className="empty">{deal.lines.length ? t('quote.empty') : t('quote.needLines')}</p> : (
             <table>

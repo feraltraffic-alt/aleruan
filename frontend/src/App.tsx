@@ -4,6 +4,7 @@ import { I18nProvider } from './i18n';
 import { AuditPage } from './pages/Audit';
 import { CounterpartiesPage } from './pages/Counterparties';
 import { CounterpartyDetailPage } from './pages/CounterpartyDetail';
+import { ChangeOrderPage } from './pages/ChangeOrderPage';
 import { DashboardPage } from './pages/Dashboard';
 import { DealDetailPage } from './pages/DealDetail';
 import { DealsPage } from './pages/Deals';
@@ -24,6 +25,7 @@ export function AppRoutes() {
         <Route path="counterparties/:id" element={<CounterpartyDetailPage />} />
         <Route path="deals" element={<DealsPage />} />
         <Route path="deals/:id" element={<DealDetailPage />} />
+        <Route path="change-orders/:id" element={<ChangeOrderPage />} />
         <Route path="rfqs/:id" element={<RfqDetailPage />} />
         <Route path="sites" element={<SitesPage />} />
         <Route path="sites/:id" element={<SiteDetailPage />} />

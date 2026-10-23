@@ -106,6 +106,21 @@ export const httpApi: Api = {
   tasksFromDeal: (siteId) => request(`/sites/${siteId}/tasks/from-deal`, json('POST')),
   workload: (from, to) => request(`/workload${qs({ from, to })}`),
 
+  changeOrders: (dealId) => request(`/deals/${dealId}/change-orders`),
+  createChangeOrder: (dealId, draft) => request(`/deals/${dealId}/change-orders`, json('POST', draft)),
+  getChangeOrder: (id) => request(`/change-orders/${id}`),
+  editChangeOrder: (id, draft) => request(`/change-orders/${id}`, json('PUT', draft)),
+  addChangeLine: (id, line) => request(`/change-orders/${id}/lines`, json('POST', line)),
+  updateChangeLine: (id, lineId, line) => request(`/change-orders/${id}/lines/${lineId}`, json('PUT', line)),
+  removeChangeLine: (id, lineId) => request(`/change-orders/${id}/lines/${lineId}`, json('DELETE')),
+  changeOrderAction: (id, action) => request(`/change-orders/${id}/${action}`, json('POST')),
+  decideChangeOrder: (id, decision, by, note) => request(`/change-orders/${id}/${decision}`, json('POST', { by, note })),
+  changeOrderFile: async (id) => {
+    const res = await fetch(`/api/change-orders/${id}/pdf`, { headers: await authHeaders() });
+    if (!res.ok) throw new ApiError(res.status, res.statusText);
+    return res.blob();
+  },
+
   openOffer: (token) => request(`/public/rfq/${token}`),
   submitOffer: (token, prices, note) => request(`/public/rfq/${token}/offer`, json('POST', { prices, note })),
 };

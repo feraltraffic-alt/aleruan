@@ -397,3 +397,10 @@ button.cell { cursor: pointer; }
 .site-top:has(.map-wrap.off) { grid-template-columns: 1fr; }
 .sites-layout:has(.map-wrap.off) { grid-template-columns: 1fr; }
 .nowrap { white-space: nowrap; }
+
+/* ---------- change orders ---------- */
+.contract-line { margin: 14px 0 0; font-size: 14px; color: var(--muted); }
+.pill.c-DRAFT { background: #efecf3; color: #4a4356; }
+.pill.c-SENT { background: #fbf1d9; color: var(--gold-ink); }
+.pill.c-APPROVED { background: var(--ok-bg); color: var(--ok); }
+.pill.c-REJECTED, .pill.c-CANCELLED { background: #eeedf0; color: var(--none); }

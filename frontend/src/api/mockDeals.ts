@@ -1,6 +1,6 @@
 import type {
   Api, Candidate, Counterparty, Deal, DealLine, DealListItem, DealStatus, DealWarning, LineData, OfferPage, PartyRef,
-  Quote, Rfq, RfqInvitation,
+  ChangeOrder, ChangeOrderStatus, Contract, Quote, Rfq, RfqInvitation,
 } from './types';
 import { ApiError } from './http';
 import { priceLine, totals } from '../pricing';
@@ -12,7 +12,19 @@ import { createSitesMock, type SitesApi } from './mockSites';
 
 type DealsApi = Pick<Api, 'listDeals' | 'getDeal' | 'createDeal' | 'editDeal' | 'addLine' | 'updateLine' | 'removeLine'
   | 'moveDeal' | 'dealRfqs' | 'createRfq' | 'getRfq' | 'rfqCandidates' | 'invite' | 'award' | 'cancelRfq'
-  | 'openOffer' | 'submitOffer' | 'quoteDefaults' | 'listQuotes' | 'issueQuote' | 'quoteFile'>;
+  | 'openOffer' | 'submitOffer' | 'quoteDefaults' | 'listQuotes' | 'issueQuote' | 'quoteFile' | 'changeOrders'
+  | 'createChangeOrder' | 'getChangeOrder' | 'editChangeOrder' | 'addChangeLine' | 'updateChangeLine'
+  | 'removeChangeLine' | 'changeOrderAction' | 'decideChangeOrder' | 'changeOrderFile'>;
+
+interface StoredChangeOrder {
+  id: string; dealId: string; seq: number; title: string; reason: string | null; status: ChangeOrderStatus;
+  extraDays: number; sentAt: string | null; decidedAt: string | null; decidedBy: string | null;
+  decisionNote: string | null; createdAt: string; lines: StoredLine[];
+}
+
+const CO_NEXT: Record<ChangeOrderStatus, ChangeOrderStatus[]> = {
+  DRAFT: ['SENT', 'CANCELLED'], SENT: ['APPROVED', 'REJECTED', 'DRAFT', 'CANCELLED'], APPROVED: [], REJECTED: [], CANCELLED: [],
+};
 
 interface StoredLine extends LineData { id: string; position: number }
 interface StoredDeal {
@@ -47,6 +59,7 @@ export function createDealsMock(
   const deals: StoredDeal[] = [];
   const rfqs: StoredRfq[] = [];
   const quotes: (Quote & { dealId: string; html: string })[] = [];
+  const cos: StoredChangeOrder[] = [];
   let seq = 0;
 
   const party = (id: string | null | undefined): Counterparty | undefined => counterparties.find((c) => c.id === id);
@@ -81,6 +94,27 @@ export function createDealsMock(
     priceLine({ quantity: l.quantity, unitCost: l.unitCost, markupPct: l.markupPct ?? null,
       fixedUnitPrice: l.fixedUnitPrice ?? null }, d.defaultMarkupPct);
 
+  const lineView = (d: StoredDeal, l: StoredLine): DealLine => {
+    const p = priced(d, l);
+    return {
+      id: l.id, position: l.position, kind: l.kind, description: l.description, workType: l.workType ?? null,
+      unit: l.unit ?? null, quantity: l.quantity, unitCost: l.unitCost, markupPct: p.markupPct,
+      markupFromDeal: l.markupPct == null && l.fixedUnitPrice == null, fixedUnitPrice: l.fixedUnitPrice ?? null,
+      unitPrice: p.unitPrice, costTotal: p.costTotal, priceTotal: p.priceTotal, margin: p.margin,
+      subcontractor: ref(party(l.subcontractorId)),
+    };
+  };
+
+  const contract = (d: StoredDeal): Contract => {
+    const own = d.lines.map((l) => priced(d, l));
+    const mine = cos.filter((c) => c.dealId === d.id);
+    const approved = mine.filter((c) => c.status === 'APPROVED').flatMap((c) => c.lines.map((l) => priced(d, l)));
+    const pending = totals(mine.filter((c) => c.status === 'SENT').flatMap((c) => c.lines.map((l) => priced(d, l)))).price;
+    return { original: totals(own), approvedChanges: totals(approved), pendingPrice: pending,
+      total: totals([...own, ...approved]),
+      extraDays: mine.filter((c) => c.status === 'APPROVED').reduce((n, c) => n + c.extraDays, 0) };
+  };
+
   const view = (d: StoredDeal): Deal => {
     const warnings: DealWarning[] = [];
     const customer = party(d.customerId);
@@ -99,13 +133,42 @@ export function createDealsMock(
       };
     });
     const t = totals(d.lines.map((l) => priced(d, l)));
-    if (t.marginPct != null && t.marginPct < MARGIN_WARNING_PCT) warnings.push('MARGIN_BELOW_THRESHOLD');
+    const agreed = contract(d);
+    if (agreed.total.marginPct != null && agreed.total.marginPct < MARGIN_WARNING_PCT) warnings.push('MARGIN_BELOW_THRESHOLD');
     return {
       id: d.id, number: d.number, title: d.title, status: d.status, nextStatuses: NEXT[d.status],
       direction: d.direction, siteCountry: d.siteCountry, currency: d.currency, defaultMarkupPct: d.defaultMarkupPct,
       pricesEditable: pricesEditable(d.status), customer: ref(customer), manager: 'demo', notes: d.notes,
-      createdAt: d.createdAt, lines, totals: t, warnings,
+      createdAt: d.createdAt, lines, totals: t, warnings, contract: agreed,
     };
+  };
+
+  const findCo = (id: string) => {
+    const c = cos.find((x) => x.id === id);
+    if (!c) throw new ApiError(404, `Change order ${id} not found`);
+    return c;
+  };
+  const coView = (c: StoredChangeOrder): ChangeOrder => {
+    const d = findDeal(c.dealId);
+    const { lines, ...rest } = c;
+    return { ...rest, number: `${d.number}-C${c.seq}`, nextStatuses: CO_NEXT[c.status],
+      pricesEditable: c.status === 'DRAFT', createdBy: 'demo', lines: lines.map((l) => lineView(d, l)),
+      totals: totals(lines.map((l) => priced(d, l))) };
+  };
+  const requireAlive = (d: StoredDeal) => {
+    if (d.status !== 'WON' && d.status !== 'IN_PROGRESS') {
+      throw new ApiError(409, `Change orders are for deals the customer accepted and that are not closed; ${d.number} is ${d.status}`);
+    }
+  };
+  const coLine = (line: LineData) => {
+    if (!line.description.trim()) throw new ApiError(400, 'A line needs a kind and a description');
+    if (!line.quantity) throw new ApiError(400, 'Quantity must not be zero');
+    checkSupplier(line.subcontractorId);
+  };
+  const moveCo = (c: StoredChangeOrder, to: ChangeOrderStatus) => {
+    if (!CO_NEXT[c.status].includes(to)) throw new ApiError(409, `Change order ${c.seq} cannot move from ${c.status} to ${to}`);
+    c.status = to;
+    record('ChangeOrder', c.id, to, {});
   };
 
   const listItem = (d: StoredDeal): DealListItem => {
@@ -366,6 +429,87 @@ export function createDealsMock(
       r.status = 'CANCELLED';
       record('Rfq', rfqId, 'CANCELLED', {});
       return delay(rfqView(r));
+    },
+
+    changeOrders: async (dealId) => { findDeal(dealId); return delay(cos.filter((c) => c.dealId === dealId).map(coView)); },
+    createChangeOrder: async (dealId, draft) => {
+      const d = findDeal(dealId);
+      requireAlive(d);
+      if (!draft.title.trim()) throw new ApiError(400, 'A change order needs a title');
+      const c: StoredChangeOrder = { id: uid(), dealId, seq: cos.filter((x) => x.dealId === dealId).length + 1,
+        title: draft.title.trim(), reason: draft.reason?.trim() || null, status: 'DRAFT', extraDays: draft.extraDays ?? 0,
+        sentAt: null, decidedAt: null, decidedBy: null, decisionNote: null, createdAt: now(), lines: [] };
+      cos.push(c);
+      record('ChangeOrder', c.id, 'CREATED', draft);
+      return delay(coView(c));
+    },
+    getChangeOrder: async (id) => delay(coView(findCo(id))),
+    editChangeOrder: async (id, draft) => {
+      const c = findCo(id);
+      if (c.status !== 'DRAFT') throw new ApiError(409, `Change order ${c.seq} is ${c.status}; revise it to a draft first`);
+      Object.assign(c, { title: draft.title.trim(), reason: draft.reason?.trim() || null, extraDays: draft.extraDays ?? 0 });
+      return delay(coView(c));
+    },
+    addChangeLine: async (id, line) => {
+      const c = findCo(id);
+      if (c.status !== 'DRAFT') throw new ApiError(409, `Change order ${c.seq} is ${c.status}; revise it to a draft first`);
+      coLine(line);
+      c.lines.push({ ...line, id: uid(), position: (c.lines.at(-1)?.position ?? 0) + 1 });
+      return delay(coView(c));
+    },
+    updateChangeLine: async (id, lineId, line) => {
+      const c = findCo(id);
+      const i = c.lines.findIndex((l) => l.id === lineId);
+      if (i < 0) throw new ApiError(404, `Line ${lineId} not found`);
+      coLine(line);
+      const old = c.lines[i];
+      if (c.status !== 'DRAFT') {
+        if (!['SENT', 'APPROVED'].includes(c.status)) throw new ApiError(409, `Change order ${c.seq} cannot change`);
+        const touched = old.quantity !== line.quantity || old.description !== line.description.trim()
+          || (old.markupPct ?? null) !== (line.markupPct ?? null) || (old.fixedUnitPrice ?? null) !== (line.fixedUnitPrice ?? null);
+        if (touched) throw new ApiError(409, `The customer was already sent change order ${c.seq}; revise it to change prices`);
+        const d = findDeal(c.dealId);
+        c.lines[i] = { ...old, fixedUnitPrice: old.fixedUnitPrice ?? priced(d, old).unitPrice, unitCost: line.unitCost,
+          subcontractorId: line.subcontractorId };
+      } else {
+        c.lines[i] = { ...line, id: lineId, position: old.position };
+      }
+      return delay(coView(c));
+    },
+    removeChangeLine: async (id, lineId) => {
+      const c = findCo(id);
+      if (c.status !== 'DRAFT') throw new ApiError(409, `Change order ${c.seq} is ${c.status}; revise it to a draft first`);
+      c.lines = c.lines.filter((l) => l.id !== lineId);
+      return delay(coView(c));
+    },
+    changeOrderAction: async (id, action) => {
+      const c = findCo(id);
+      if (action === 'send') {
+        requireAlive(findDeal(c.dealId));
+        if (!c.lines.length) throw new ApiError(409, 'A change order needs at least one line');
+        moveCo(c, 'SENT');
+        c.sentAt = now();
+      } else if (action === 'revise') {
+        moveCo(c, 'DRAFT');
+        c.sentAt = null;
+      } else {
+        moveCo(c, 'CANCELLED');
+      }
+      return delay(coView(c));
+    },
+    decideChangeOrder: async (id, decision, by, note) => {
+      const c = findCo(id);
+      if (!by.trim()) throw new ApiError(400, "Record who decided on the customer's side");
+      if (decision === 'approve') requireAlive(findDeal(c.dealId));
+      moveCo(c, decision === 'approve' ? 'APPROVED' : 'REJECTED');
+      Object.assign(c, { decidedBy: by.trim(), decisionNote: note?.trim() || null, decidedAt: now() });
+      return delay(coView(c));
+    },
+    changeOrderFile: async (id) => {
+      const v = coView(findCo(id));
+      return new Blob([`<!doctype html><meta charset="utf-8"><title>${v.number}</title><body style="font-family:sans-serif;padding:32px">`
+        + `<p>Demo: the real system renders a PDF here.</p><h1>${v.number}: ${v.title}</h1>`
+        + `<p><b>${v.totals.price.toFixed(2)}</b></p>`], { type: 'text/html' });
     },
 
     quoteDefaults: async (dealId) => {

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { api, type Deal, type DealLine, type LineData, type LineKind } from '../api';
+import { api, type DealLine, type LineData, type LineKind } from '../api';
 import { Drawer } from '../components/Drawer';
 import { LINE_KINDS, useWorkTypes } from '../components/dealData';
 import { useAction } from '../components/useAction';
@@ -10,9 +10,20 @@ import { maxUnitCost, priceLine } from '../pricing';
 
 type Mode = 'deal' | 'markup' | 'fixed';
 
-interface Props { deal: Deal; line?: DealLine; onClose(): void; onSaved(d: Deal): void }
+interface Props<T> {
+  /** Currency and default markup of the deal the line belongs to. */
+  pricing: { currency: string; defaultMarkupPct: number };
+  line?: DealLine;
+  /** Change orders may take scope out, so their quantities can be negative. */
+  allowNegative?: boolean;
+  save(data: LineData): Promise<T>;
+  onClose(): void;
+  onSaved(result: T): void;
+}
 
-export function LineForm({ deal, line, onClose, onSaved }: Props) {
+/** Editor for a priced line of a deal or a change order, with a live price preview. */
+export function LineForm<T>({ pricing, line, allowNegative, save, onClose, onSaved }: Props<T>) {
+  const deal = pricing;
   const { t, money, num } = useI18n();
   const workTypes = useWorkTypes();
   const suppliers = useLoad(async () => (await api.listCounterparties())
@@ -40,7 +51,8 @@ export function LineForm({ deal, line, onClose, onSaved }: Props) {
   const unitCost = parseNum(f.unitCost);
   const markupPct = f.mode === 'markup' ? parseNum(f.markupPct) : null;
   const fixedUnitPrice = f.mode === 'fixed' ? parseNum(f.fixedUnitPrice) : null;
-  const ready = quantity > 0 && unitCost >= 0 && (markupPct == null || markupPct > -100)
+  const quantityOk = allowNegative ? Number.isFinite(quantity) && quantity !== 0 : quantity > 0;
+  const ready = quantityOk && unitCost >= 0 && (markupPct == null || markupPct > -100)
     && (fixedUnitPrice == null || fixedUnitPrice >= 0);
   const preview = ready ? priceLine({ quantity, unitCost, markupPct, fixedUnitPrice }, deal.defaultMarkupPct) : null;
 
@@ -48,7 +60,7 @@ export function LineForm({ deal, line, onClose, onSaved }: Props) {
     e.preventDefault();
     const errs: Record<string, string> = {};
     if (!f.description.trim()) errs.description = t('line.err.description');
-    if (!(quantity > 0)) errs.quantity = t('line.err.quantity');
+    if (!quantityOk) errs.quantity = allowNegative ? t('line.err.quantityNonZero') : t('line.err.quantity');
     if (!(unitCost >= 0)) errs.unitCost = t('line.err.unitCost');
     if (f.mode === 'markup' && !(markupPct! > -100)) errs.markupPct = t('deal.form.markupFormat');
     if (f.mode === 'fixed' && !(fixedUnitPrice! >= 0)) errs.fixedUnitPrice = t('line.err.price');
@@ -58,8 +70,8 @@ export function LineForm({ deal, line, onClose, onSaved }: Props) {
       kind: f.kind, description: f.description.trim(), workType: f.workType || null, unit: f.unit.trim() || null,
       quantity, unitCost, markupPct, fixedUnitPrice, subcontractorId: f.subcontractorId || null,
     };
-    const d = await action.run(() => (line ? api.updateLine(deal.id, line.id, data) : api.addLine(deal.id, data)));
-    if (d) onSaved(d);
+    const result = await action.run(() => save(data));
+    if (result !== undefined) onSaved(result);
   };
 
   const err = (k: string) => errors[k] ? <span className="err">{errors[k]}</span> : null;

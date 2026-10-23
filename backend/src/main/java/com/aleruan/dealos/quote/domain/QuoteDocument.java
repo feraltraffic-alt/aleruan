@@ -36,7 +36,7 @@ public record QuoteDocument(
     public record ChangeOrder(String reason, int extraDays) {
     }
 
-    public boolean isChangeOrder() {
+    public boolean hasChangeOrder() {
         return changeOrder != null;
     }
 

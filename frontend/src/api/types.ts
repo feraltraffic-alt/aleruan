@@ -119,6 +119,21 @@ export interface DealLine {
   subcontractor: PartyRef | null;
 }
 
+export type ChangeOrderStatus = 'DRAFT' | 'SENT' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export interface Contract {
+  original: DealTotals; approvedChanges: DealTotals; pendingPrice: number; total: DealTotals; extraDays: number;
+}
+
+export interface ChangeOrder {
+  id: string; dealId: string; number: string; seq: number; title: string; reason: string | null;
+  status: ChangeOrderStatus; nextStatuses: ChangeOrderStatus[]; pricesEditable: boolean; extraDays: number;
+  sentAt: string | null; decidedAt: string | null; decidedBy: string | null; decisionNote: string | null;
+  createdAt: string; createdBy: string | null; lines: DealLine[]; totals: DealTotals;
+}
+
+export interface ChangeOrderDraft { title: string; reason?: string | null; extraDays?: number | null }
+
 export interface Deal {
   id: string;
   number: string;
@@ -137,6 +152,7 @@ export interface Deal {
   lines: DealLine[];
   totals: DealTotals;
   warnings: DealWarning[];
+  contract: Contract;
 }
 
 export interface DealListItem {
@@ -281,6 +297,18 @@ export interface Api {
   removeTask(siteId: string, taskId: string): Promise<Site>;
   tasksFromDeal(siteId: string): Promise<Site>;
   workload(from: string, to: string): Promise<WorkloadRow[]>;
+
+  changeOrders(dealId: string): Promise<ChangeOrder[]>;
+  createChangeOrder(dealId: string, draft: ChangeOrderDraft): Promise<ChangeOrder>;
+  getChangeOrder(id: string): Promise<ChangeOrder>;
+  editChangeOrder(id: string, draft: ChangeOrderDraft): Promise<ChangeOrder>;
+  addChangeLine(id: string, line: LineData): Promise<ChangeOrder>;
+  updateChangeLine(id: string, lineId: string, line: LineData): Promise<ChangeOrder>;
+  removeChangeLine(id: string, lineId: string): Promise<ChangeOrder>;
+  changeOrderAction(id: string, action: 'send' | 'revise' | 'cancel'): Promise<ChangeOrder>;
+  decideChangeOrder(id: string, decision: 'approve' | 'reject', by: string, note: string | null): Promise<ChangeOrder>;
+  /** Sheet for the customer to sign (PDF; HTML stand-in in demo mode). */
+  changeOrderFile(id: string): Promise<Blob>;
 
   openOffer(token: string): Promise<OfferPage>;
   submitOffer(token: string, prices: Record<string, number>, note: string): Promise<OfferPage>;

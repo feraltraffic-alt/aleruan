@@ -13,6 +13,7 @@ import { parseNum } from '../numbers';
 import { LineForm } from './LineForm';
 import { QuotesSection } from './Quotes';
 import { DealSite } from '../components/DealSite';
+import { ChangeOrdersSection } from './ChangeOrders';
 
 /** Moves that end the deal ask for a second click. */
 const FINAL: DealStatus[] = ['LOST', 'CANCELLED'];
@@ -48,7 +49,8 @@ export function DealDetailPage() {
   };
   const remove = async (l: DealLine) => apply(await action.run(() => api.removeLine(d.id, l.id)));
 
-  const costShare = d.totals.price > 0 ? Math.min(100, Math.max(0, (d.totals.cost / d.totals.price) * 100)) : 0;
+  const agreed = d.contract.total;
+  const costShare = agreed.price > 0 ? Math.min(100, Math.max(0, (agreed.cost / agreed.price) * 100)) : 0;
 
   return (
     <>
@@ -73,18 +75,26 @@ export function DealDetailPage() {
 
       <section className="panel totals" aria-label={t('totals.title')}>
         <div className="totals-figures">
-          <div><span>{t('totals.price')}</span><b>{money(d.totals.price, d.currency)}</b></div>
-          <div><span>{t('totals.cost')}</span><b>{money(d.totals.cost, d.currency)}</b></div>
-          <div className={d.totals.margin < 0 ? 'neg' : ''}>
-            <span>{t('totals.margin')}</span><b>{money(d.totals.margin, d.currency)}</b>
+          <div><span>{t('totals.price')}</span><b>{money(agreed.price, d.currency)}</b></div>
+          <div><span>{t('totals.cost')}</span><b>{money(agreed.cost, d.currency)}</b></div>
+          <div className={agreed.margin < 0 ? 'neg' : ''}>
+            <span>{t('totals.margin')}</span><b>{money(agreed.margin, d.currency)}</b>
           </div>
           <div>
             <span>{t('totals.marginPct')}</span>
-            <b>{d.totals.marginPct == null ? '—' : `${num(d.totals.marginPct, 1)} %`}</b>
-            {d.totals.markupPct != null && <small>{t('totals.markupPct', { pct: num(d.totals.markupPct, 1) })}</small>}
+            <b>{agreed.marginPct == null ? '—' : `${num(agreed.marginPct, 1)} %`}</b>
+            {agreed.markupPct != null && <small>{t('totals.markupPct', { pct: num(agreed.markupPct, 1) })}</small>}
           </div>
         </div>
-        {d.totals.price > 0 && (
+        {(d.contract.approvedChanges.price !== 0 || d.contract.pendingPrice !== 0) && (
+          <p className="contract-line">
+            {t('contract.original', { v: money(d.contract.original.price, d.currency) })}
+            {d.contract.approvedChanges.price !== 0 && <> · {t('contract.approved', { v: money(d.contract.approvedChanges.price, d.currency) })}</>}
+            {d.contract.pendingPrice !== 0 && <> · {t('contract.pending', { v: money(d.contract.pendingPrice, d.currency) })}</>}
+            {d.contract.extraDays !== 0 && <> · {t('contract.days', { n: d.contract.extraDays })}</>}
+          </p>
+        )}
+        {agreed.price > 0 && (
           <div className="marginbar" role="img"
             aria-label={t('totals.bar', { cost: num(costShare, 0), margin: num(100 - costShare, 0) })}>
             <span className="cost" style={{ flexBasis: `${costShare}%` }} />
@@ -191,6 +201,8 @@ export function DealDetailPage() {
 
       <QuotesSection deal={d} onIssued={deal.reload} />
 
+      <ChangeOrdersSection deal={d} />
+
       <section className="section">
         <div className="section-head">
           <div>
@@ -230,7 +242,8 @@ export function DealDetailPage() {
       </section>
 
       {editing && (
-        <LineForm deal={d} line={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)}
+        <LineForm pricing={d} line={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)}
+          save={(data) => (editing === 'new' ? api.addLine(d.id, data) : api.updateLine(d.id, editing.id, data))}
           onSaved={(next) => { deal.setData(next); setEditing(null); }} />
       )}
       {tender && <RfqForm deal={d} onClose={() => setTender(false)} />}

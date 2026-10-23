@@ -22,7 +22,7 @@ public final class QuoteHtml {
      */
     public static String render(QuoteDocument d, String logoSrc, String fontFamily) {
         QuoteLanguage lang = d.language();
-        String title = l(lang, d.isChangeOrder() ? Key.CO_TITLE : Key.TITLE);
+        String title = l(lang, d.hasChangeOrder() ? Key.CO_TITLE : Key.TITLE);
         StringBuilder h = new StringBuilder(8_000);
         h.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE html>\n")
                 .append("<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"").append(lang.name().toLowerCase()).append("\">")
@@ -57,7 +57,7 @@ public final class QuoteHtml {
             h.append("<tr><td class=\"k\">").append(esc(l(lang, Key.SITE))).append("</td><td>").append(esc(d.siteCountry()))
                     .append("</td></tr>");
         }
-        if (d.isChangeOrder()) {
+        if (d.hasChangeOrder()) {
             if (d.changeOrder().reason() != null) {
                 h.append("<tr><td class=\"k\">").append(esc(l(lang, Key.CO_REASON))).append("</td><td>")
                         .append(esc(d.changeOrder().reason()).replace("\n", "<br/>")).append("</td></tr>");
@@ -121,7 +121,7 @@ public final class QuoteHtml {
             h.append("<h2>").append(esc(l(lang, Key.ISSUED_BY))).append("</h2><p>").append(esc(d.issuedBy())).append("</p>");
         }
         h.append("</td></tr></table>");
-        if (d.isChangeOrder()) {
+        if (d.hasChangeOrder()) {
             h.append("<div class=\"approval\"><h2>").append(esc(l(lang, Key.CO_APPROVAL))).append("</h2><table class=\"signs\"><tr>")
                     .append("<td>").append(esc(l(lang, Key.SIGN_NAME))).append("</td>")
                     .append("<td>").append(esc(l(lang, Key.SIGN_DATE))).append("</td>")
