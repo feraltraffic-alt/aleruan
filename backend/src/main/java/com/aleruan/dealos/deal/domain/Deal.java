@@ -59,7 +59,8 @@ public class Deal {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    @OneToMany(mappedBy = "deal", cascade = CascadeType.ALL, orphanRemoval = true)
+    // Eager: a deal is always shown with its lines (dozens at most), also outside the service transaction.
+    @OneToMany(mappedBy = "deal", cascade = CascadeType.ALL, orphanRemoval = true, fetch = jakarta.persistence.FetchType.EAGER)
     @OrderBy("position")
     private List<DealLine> lines = new ArrayList<>();
 

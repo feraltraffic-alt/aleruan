@@ -37,6 +37,12 @@ public class AuditService {
 
     @Transactional
     public AuditRecord record(String entityType, String entityId, String action, Object payload) {
+        return recordAs(currentActor.name(), entityType, entityId, action, payload);
+    }
+
+    /** For actions by people outside Keycloak, e.g. a subcontractor submitting an offer through a private link. */
+    @Transactional
+    public AuditRecord recordAs(String actor, String entityType, String entityId, String action, Object payload) {
         // One writer at a time: the next link needs the hash of the latest one.
         entityManager.createNativeQuery("select 1 from (select pg_advisory_xact_lock(:key)) l")
                 .setParameter("key", CHAIN_LOCK_KEY)
@@ -45,7 +51,7 @@ public class AuditService {
         AuditRecord previous = repository.findTopByOrderBySeqDesc().map(AuditEvent::toRecord).orElse(null);
         AuditRecord next = AuditRecord.next(previous,
                 clock.instant().truncatedTo(ChronoUnit.MICROS), // Postgres keeps microseconds
-                currentActor.name(), entityType, entityId, action, toJson(payload));
+                actor, entityType, entityId, action, toJson(payload));
         repository.save(AuditEvent.from(next));
         return next;
     }
