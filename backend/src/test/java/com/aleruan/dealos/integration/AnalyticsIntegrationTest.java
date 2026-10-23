@@ -15,6 +15,7 @@ import com.aleruan.dealos.deal.domain.Deal;
 import com.aleruan.dealos.deal.domain.DealStatus;
 import com.aleruan.dealos.deal.domain.Direction;
 import com.aleruan.dealos.deal.domain.LineKind;
+import com.aleruan.dealos.platform.rates.RatesUnavailableException;
 import com.aleruan.dealos.site.application.SiteService;
 import com.aleruan.dealos.site.domain.Site;
 import java.math.BigDecimal;
@@ -91,8 +92,13 @@ class AnalyticsIntegrationTest extends IntegrationTestBase {
         AnalyticsService.Margin before = analytics.margin(new AnalyticsService.Filter(AnalyticsService.Scope.CONTRACTED,
                 null, LocalDate.of(2020, 1, 1), null, COUNTRY, "CZK"));
         assertEquals(0, before.totals().deals());
-        assertThrows(IllegalArgumentException.class,
-                () -> analytics.margin(filter(AnalyticsService.Scope.CONTRACTED, "XXX")));
+        assertThrows(RatesUnavailableException.class,
+                () -> analytics.margin(filter(AnalyticsService.Scope.CONTRACTED, "XXX")), "answered with 503");
+        // agreed deals are counted from the day they were won
+        assertTrue(deals.get(czk.getId()).getWonAt() != null);
+        AnalyticsService.Margin wonToday = analytics.margin(new AnalyticsService.Filter(
+                AnalyticsService.Scope.CONTRACTED, sites.today(), sites.today(), null, COUNTRY, "CZK"));
+        assertEquals(2, wonToday.totals().deals());
 
         // health: a late task, a change order waiting for the customer, unchecked counterparties, package gaps
         Site site = sites.create(czk.getId());

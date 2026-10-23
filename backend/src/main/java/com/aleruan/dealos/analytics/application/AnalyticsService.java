@@ -91,31 +91,33 @@ public class AnalyticsService {
         this.clock = clock;
     }
 
-    @Transactional(readOnly = true)
+    /** No outer transaction: the catalogs read in their own, and exchange rates may take a network call. */
     public Margin margin(Filter f) {
         String target = f.currency() == null || f.currency().isBlank() ? "CZK" : f.currency().toUpperCase(Locale.ROOT);
         LocalDate today = LocalDate.now(clock.withZone(PRAGUE));
         List<DealEconomics> list = deals.economics(f.scope() == Scope.PIPELINE ? PIPELINE : CONTRACTED).stream()
                 .filter(d -> f.direction() == null || f.direction().equalsIgnoreCase(d.direction()))
                 .filter(d -> f.country() == null || f.country().equalsIgnoreCase(d.siteCountry()))
-                .filter(d -> f.from() == null || !day(d).isBefore(f.from()))
-                .filter(d -> f.to() == null || !day(d).isAfter(f.to()))
+                .filter(d -> f.from() == null || !day(d, f.scope()).isBefore(f.from()))
+                .filter(d -> f.to() == null || !day(d, f.scope()).isAfter(f.to()))
                 .toList();
 
-        Map<String, ExchangeRates.Rate> found = new LinkedHashMap<>();
+        // one lookup per currency, failures remembered too, so an outage is not retried for every deal
+        ExchangeRates.Rate to = rates.rate(target, today); // fails the request (503) when rates are unavailable
+        Map<String, Optional<ExchangeRates.Rate>> found = new LinkedHashMap<>();
+        found.put(target, Optional.of(to));
         Set<String> missing = new TreeSet<>();
-        Function<String, ExchangeRates.Rate> rate = c -> found.computeIfAbsent(c, code -> {
-            try {
-                return rates.rate(code, today);
-            } catch (RuntimeException e) {
-                missing.add(code);
-                return null;
+        Function<String, ExchangeRates.Rate> rate = c -> {
+            if (!found.containsKey(c)) {
+                try {
+                    found.put(c, Optional.of(rates.rate(c, today)));
+                } catch (RuntimeException e) {
+                    found.put(c, Optional.empty());
+                    missing.add(c);
+                }
             }
-        });
-        ExchangeRates.Rate to = rate.apply(target);
-        if (to == null) {
-            throw new IllegalArgumentException("No exchange rate for " + target + " today");
-        }
+            return found.get(c).orElse(null);
+        };
 
         Map<UUID, String> names = new HashMap<>();
         Function<UUID, String> name = id -> id == null ? null : names.computeIfAbsent(id,
@@ -130,10 +132,11 @@ public class AnalyticsService {
                     l.subcontractorId() == null ? null : l.subcontractorId().toString(), name.apply(l.subcontractorId()),
                     convert(l.cost(), from, to), convert(l.price(), from, to))).toList();
             converted.add(new MarginCuts.Deal(d.id().toString(), d.number(), d.title(), d.customerId().toString(),
-                    name.apply(d.customerId()), d.direction(), d.siteCountry(), day(d).toString().substring(0, 7), lines));
+                    name.apply(d.customerId()), d.direction(), d.siteCountry(),
+                    day(d, f.scope()).toString().substring(0, 7), lines));
         }
         MarginCuts.Report report = MarginCuts.build(converted);
-        List<RateUsed> used = found.values().stream().filter(Objects::nonNull)
+        List<RateUsed> used = found.values().stream().flatMap(Optional::stream)
                 .map(r -> new RateUsed(r.currency(), r.czkPerUnit(), r.validFor(), r.source())).toList();
         return new Margin(target, today, used, List.copyOf(missing), report.totals(), report.cuts());
     }
@@ -165,8 +168,15 @@ public class AnalyticsService {
                         .thenComparing(PartyRisk::name))
                 .toList();
 
+        // packages of running deals and of those completed in the last 90 days; older ones are settled
+        java.time.Instant recent = clock.instant().minus(java.time.Duration.ofDays(90));
         List<PackageRisk> packages = new ArrayList<>();
         for (DealEconomics d : byId.values()) {
+            boolean relevant = RUNNING.contains(d.status())
+                    || d.statusChangedAt() != null && d.statusChangedAt().isAfter(recent);
+            if (!relevant) {
+                continue;
+            }
             List<EvidenceCheck> gaps = evidence.gaps(d.id()).stream()
                     .filter(c -> c.level() != EvidenceCheck.Level.OK).toList();
             int missingCount = (int) gaps.stream().filter(c -> c.level() == EvidenceCheck.Level.MISSING).count();
@@ -218,8 +228,10 @@ public class AnalyticsService {
         };
     }
 
-    private static LocalDate day(DealEconomics d) {
-        return d.createdAt().atZone(PRAGUE).toLocalDate();
+    /** Agreed deals count from the day they were won (older ones from creation); open quotes from creation. */
+    private static LocalDate day(DealEconomics d, Scope scope) {
+        java.time.Instant at = scope == Scope.CONTRACTED && d.wonAt() != null ? d.wonAt() : d.createdAt();
+        return at.atZone(PRAGUE).toLocalDate();
     }
 
     static BigDecimal convert(BigDecimal amount, ExchangeRates.Rate from, ExchangeRates.Rate to) {

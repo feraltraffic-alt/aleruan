@@ -39,6 +39,12 @@ class ApiExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Send the file as multipart form data");
     }
 
+    /** An outside service the answer depends on (ČNB rates) is not reachable or has no data. */
+    @ExceptionHandler(com.aleruan.dealos.platform.rates.RatesUnavailableException.class)
+    ProblemDetail ratesUnavailable(com.aleruan.dealos.platform.rates.RatesUnavailableException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     ProblemDetail badRequest(IllegalArgumentException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());

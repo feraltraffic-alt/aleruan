@@ -116,6 +116,8 @@ function MarginSection({ report, cut, setCut, busy }: {
     }
     return r.label;
   };
+  const rateText = (v: number) => new Intl.NumberFormat({ ru: 'ru-RU', cs: 'cs-CZ', en: 'en-GB' }[lang],
+    { maximumSignificantDigits: 5 }).format(v);
   const pctText = (v: number | null) => (v == null ? '—' : `${num(v, 1)} %`);
 
   return (
@@ -130,7 +132,7 @@ function MarginSection({ report, cut, setCut, busy }: {
       </div>
       <p className="note an-rates">
         {t('an.rates', { date: day(report.ratesOn) })}{' '}
-        {report.rates.filter((r) => r.currency !== 'CZK').map((r) => `${r.currency} ${num(r.czkPerUnit, 3)}`).join(', ') || '—'}
+        {report.rates.filter((r) => r.currency !== 'CZK').map((r) => `${r.currency} ${rateText(r.czkPerUnit)}`).join(', ') || '—'}
         {report.missingRates.length > 0 && <> · <b>{t('an.missingRates', { list: report.missingRates.join(', ') })}</b></>}
       </p>
 

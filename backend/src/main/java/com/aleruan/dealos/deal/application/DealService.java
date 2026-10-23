@@ -112,7 +112,7 @@ public class DealService implements DealCatalog {
     public Deal moveTo(UUID id, DealStatus target) {
         Deal deal = get(id);
         DealStatus from = deal.getStatus();
-        deal.moveTo(target);
+        deal.moveTo(target, clock.instant());
         audit.record(AUDIT_TYPE, id.toString(), "STATUS_CHANGED", Map.of("from", from, "to", target,
                 "totals", deal.totals()));
         return deal;
@@ -199,8 +199,8 @@ public class DealService implements DealCatalog {
             }
         }
         return new DealEconomics(d.getId(), d.getNumber(), d.getTitle(), d.getStatus().name(), d.getDirection().name(),
-                d.getSiteCountry(), d.getCurrency(), d.getCustomerId(), d.getCreatedAt(), List.copyOf(lines), pending,
-                pendingPrice);
+                d.getSiteCountry(), d.getCurrency(), d.getCustomerId(), d.getCreatedAt(), d.getWonAt(),
+                d.getStatusChangedAt(), List.copyOf(lines), pending, pendingPrice);
     }
 
     @Override

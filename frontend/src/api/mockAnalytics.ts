@@ -20,6 +20,8 @@ interface DealIn {
   country: string | null; month: string; lines: Line[];
 }
 
+/** The day in Prague, as the server counts it. */
+const pragueDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Prague' }).format(new Date(iso));
 const round2 = (v: number) => Math.round(v * 100) / 100;
 const pct = (margin: number, price: number) => (price === 0 ? null : Math.round((margin / price) * 1000) / 10);
 
@@ -78,8 +80,8 @@ export function createAnalyticsMock(api: Omit<Api, keyof AnalyticsApi>, counterp
       const deals = (await dealsIn(f.scope === 'PIPELINE' ? ['QUOTED'] : CONTRACTED))
         .filter((d) => !f.direction || d.direction === f.direction)
         .filter((d) => !f.country || d.siteCountry === f.country)
-        .filter((d) => !f.from || d.createdAt.slice(0, 10) >= f.from)
-        .filter((d) => !f.to || d.createdAt.slice(0, 10) <= f.to);
+        .filter((d) => !f.from || pragueDay(d.createdAt) >= f.from)
+        .filter((d) => !f.to || pragueDay(d.createdAt) <= f.to);
       const used = new Set<string>([target]);
       const input: DealIn[] = [];
       for (const d of deals) {
@@ -90,7 +92,7 @@ export function createAnalyticsMock(api: Omit<Api, keyof AnalyticsApi>, counterp
         const approved = (await api.changeOrders(d.id)).filter((c) => c.status === 'APPROVED').flatMap((c) => c.lines);
         input.push({ id: d.id, number: d.number, title: d.title, customerId: d.customer?.id ?? '',
           customerName: d.customer?.legalName ?? '', direction: d.direction, country: d.siteCountry,
-          month: d.createdAt.slice(0, 7),
+          month: pragueDay(d.createdAt).slice(0, 7),
           lines: [...d.lines, ...approved].map((l) => ({ workType: l.workType, subId: l.subcontractor?.id ?? null,
             subName: l.subcontractor?.legalName ?? null, cost: conv(l.costTotal), price: conv(l.priceTotal) })) });
       }
@@ -126,10 +128,11 @@ export function createAnalyticsMock(api: Omit<Api, keyof AnalyticsApi>, counterp
         if (!p.deals.includes(number)) p.deals.push(number);
         parties.set(c.id, p);
       };
-      deals.filter((d) => RUNNING.includes(d.status)).forEach((d) => {
+      for (const d of deals.filter((x) => RUNNING.includes(x.status))) {
         add(d.customer?.id, 'CUSTOMER', d.number);
-        d.lines.forEach((l) => add(l.subcontractor?.id, 'SUBCONTRACTOR', d.number));
-      });
+        const approved = (await api.changeOrders(d.id)).filter((c) => c.status === 'APPROVED').flatMap((c) => c.lines);
+        [...d.lines, ...approved].forEach((l) => add(l.subcontractor?.id, 'SUBCONTRACTOR', d.number));
+      }
       const rank = (s: string | null) => (s === 'RED' ? 2 : s === null ? 1 : 0);
       const risky = [...parties.values()].filter((p) => p.status !== 'GREEN')
         .sort((a, b) => rank(b.status) - rank(a.status) || a.name.localeCompare(b.name));

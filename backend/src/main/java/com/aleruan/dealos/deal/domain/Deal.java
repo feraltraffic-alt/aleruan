@@ -51,6 +51,13 @@ public class Deal {
     @Column(nullable = false)
     private DealStatus status = DealStatus.DRAFT;
 
+    /** The first time the customer agreed (status WON); null for older deals and those never won. */
+    @Column(name = "won_at")
+    private Instant wonAt;
+
+    @Column(name = "status_changed_at")
+    private Instant statusChangedAt;
+
     private String manager;
 
     @Column(columnDefinition = "text")
@@ -145,7 +152,7 @@ public class Deal {
         line.assignCost(unitCost, subcontractorId);
     }
 
-    public void moveTo(DealStatus target) {
+    public void moveTo(DealStatus target, Instant at) {
         if (!status.canMoveTo(target)) {
             throw new IllegalStateException("Deal " + number + " cannot move from " + status + " to " + target);
         }
@@ -153,6 +160,10 @@ public class Deal {
             throw new IllegalStateException("A quote needs at least one line");
         }
         this.status = target;
+        this.statusChangedAt = at;
+        if (target == DealStatus.WON && wonAt == null) {
+            this.wonAt = at;
+        }
     }
 
     public DealPricing.Totals totals() {
@@ -200,5 +211,7 @@ public class Deal {
     public String getManager() { return manager; }
     public String getNotes() { return notes; }
     public Instant getCreatedAt() { return createdAt; }
+    public Instant getWonAt() { return wonAt; }
+    public Instant getStatusChangedAt() { return statusChangedAt; }
     public List<DealLine> getLines() { return List.copyOf(lines); }
 }

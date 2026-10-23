@@ -34,11 +34,12 @@ public interface DealCatalog {
     }
 
     /**
-     * A deal's economics in its own currency: what it is agreed to earn and cost, line by line, plus change
+     * A deal's economics in its own currency (wonAt and statusChangedAt are null for deals older than those fields): what it is agreed to earn and cost, line by line, plus change
      * orders sent to the customer and not yet decided.
      */
     record DealEconomics(UUID id, String number, String title, String status, String direction, String siteCountry,
-                         String currency, UUID customerId, Instant createdAt, List<EconomicsLine> lines,
+                         String currency, UUID customerId, Instant createdAt, Instant wonAt,
+                         Instant statusChangedAt, List<EconomicsLine> lines,
                          int pendingChangeOrders, BigDecimal pendingChangePrice) {
     }
 

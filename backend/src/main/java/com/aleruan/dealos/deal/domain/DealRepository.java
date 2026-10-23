@@ -18,6 +18,7 @@ public interface DealRepository extends JpaRepository<Deal, UUID> {
             """)
     List<Deal> search(@Param("q") String q, @Param("status") DealStatus status, @Param("customerId") UUID customerId);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "lines")
     @Query("select d from Deal d where d.status in :statuses order by d.createdAt")
     List<Deal> withStatus(@Param("statuses") java.util.Collection<DealStatus> statuses);
 
