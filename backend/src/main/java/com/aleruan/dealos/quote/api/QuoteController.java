@@ -4,7 +4,7 @@ import com.aleruan.dealos.platform.documents.DocLanguage;
 import com.aleruan.dealos.quote.application.QuoteService;
 import com.aleruan.dealos.quote.domain.Quote;
 import com.aleruan.dealos.quote.domain.QuoteSummary;
-import com.aleruan.dealos.quote.domain.VatMode;
+import com.aleruan.dealos.platform.documents.VatMode;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;

@@ -1,4 +1,4 @@
-package com.aleruan.dealos.quote.domain;
+package com.aleruan.dealos.platform.documents;
 
 /** How VAT is shown on a quote. The accountant has the last word; the system only suggests. */
 public enum VatMode {

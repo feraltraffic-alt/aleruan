@@ -1,8 +1,8 @@
-package com.aleruan.dealos.quote.domain;
+package com.aleruan.dealos.platform.documents;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.aleruan.dealos.quote.domain.VatAdvisor.Reason;
+import com.aleruan.dealos.platform.documents.VatAdvisor.Reason;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 

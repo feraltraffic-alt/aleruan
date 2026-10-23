@@ -1,5 +1,7 @@
 package com.aleruan.dealos.quote.domain;
 
+import com.aleruan.dealos.platform.documents.VatMode;
+
 import com.aleruan.dealos.platform.documents.DocLanguage;
 import java.math.BigDecimal;
 import java.math.RoundingMode;

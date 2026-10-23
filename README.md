@@ -41,6 +41,7 @@ cd frontend && npm install && npm run dev
 | `DEALOS_COMPANY_EMAIL`, `_PHONE`, `_WEB`, `_IBAN`, `_BANK`, `_SWIFT`, `_ADDRESS` | бэкенд | Реквизиты Aleruan в шапке КП (по умолчанию — из регистрации и выписки PKO BP) |
 | `GOOGLE_MAPS_API_KEY` | бэкенд | Браузерный ключ Google: Maps JavaScript API + Geocoding API, ограничен доменом системы. Отдаётся фронтенду через `/api/config`; без ключа вместо карты — подсказка |
 | `GOOGLE_MAPS_MAP_ID` | бэкенд | Необязательно: свой стиль карты (без него — демо-стиль Google) |
+| `DEALOS_INVOICE_DUE_DAYS` | бэкенд | Срок оплаты фактур по умолчанию, дней (14) |
 | `VITE_KEYCLOAK_URL` | фронтенд | Включает вход через Keycloak, например `http://localhost:8180` |
 | `VITE_KEYCLOAK_REALM`, `VITE_KEYCLOAK_CLIENT` | фронтенд | По умолчанию `aleruan` и `dealos-web` |
 | `VITE_USE_MOCKS=true` | фронтенд | Демо-режим без бэкенда |

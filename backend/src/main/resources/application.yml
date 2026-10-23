@@ -45,6 +45,10 @@ dealos:
     swift: ${DEALOS_COMPANY_SWIFT:BPKOPLPW}
   quotes:
     valid-days: 30
+  invoices:
+    due-days: ${DEALOS_INVOICE_DUE_DAYS:14}
+  rates:
+    live: true   # ČNB daily fixing; false = fixed offline rates (tests)
   maps:
     google-api-key: ${GOOGLE_MAPS_API_KEY:}   # browser key: Maps JavaScript API + Geocoding API, referrer-restricted
     google-map-id: ${GOOGLE_MAPS_MAP_ID:}     # optional; without it the demo map style is used

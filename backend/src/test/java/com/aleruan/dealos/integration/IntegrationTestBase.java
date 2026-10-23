@@ -19,7 +19,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * One PostgreSQL container and one Spring context for all integration tests.
  * Live registries are off; a stub ARES answers for Czech companies so no test touches the network.
  */
-@SpringBootTest(properties = {"dealos.security.enabled=false", "dealos.registry.live=false"})
+@SpringBootTest(properties = {"dealos.security.enabled=false", "dealos.registry.live=false", "dealos.rates.live=false",
+        "dealos.rates.offline.EUR=25.000"})
 @Import(IntegrationTestBase.StubRegistry.class)
 abstract class IntegrationTestBase {
 

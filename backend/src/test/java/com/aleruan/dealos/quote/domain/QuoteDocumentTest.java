@@ -1,5 +1,9 @@
 package com.aleruan.dealos.quote.domain;
 
+import com.aleruan.dealos.platform.documents.VatMode;
+
+import com.aleruan.dealos.platform.documents.VatAdvisor;
+
 import com.aleruan.dealos.platform.documents.DocLanguage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

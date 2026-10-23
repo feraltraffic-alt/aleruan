@@ -1,4 +1,4 @@
-package com.aleruan.dealos.quote.domain;
+package com.aleruan.dealos.platform.documents;
 
 import java.math.BigDecimal;
 import java.util.Locale;
