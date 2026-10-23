@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import { I18nProvider } from './i18n';
 
 // Each section loads when first opened, so the first screen appears faster.
+const AnalyticsPage = lazy(() => import('./pages/Analytics').then((m) => ({ default: m.AnalyticsPage })));
 const AuditPage = lazy(() => import('./pages/Audit').then((m) => ({ default: m.AuditPage })));
 const CounterpartiesPage = lazy(() => import('./pages/Counterparties').then((m) => ({ default: m.CounterpartiesPage })));
 const CounterpartyDetailPage = lazy(() => import('./pages/CounterpartyDetail').then((m) => ({ default: m.CounterpartyDetailPage })));
@@ -42,6 +43,7 @@ export function AppRoutes() {
         <Route path="invoices" element={<InvoicesPage />} />
         <Route path="invoices/money-s4" element={<MoneyExportPage />} />
         <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="audit" element={<AuditPage />} />
         <Route path="reference" element={<ReferencePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

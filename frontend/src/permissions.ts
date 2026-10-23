@@ -19,7 +19,7 @@ const GROUPS = {
 export type Permission =
   | 'deals.read' | 'deals.write' | 'quotes.issue' | 'tenders.write' | 'changes.write' | 'sites.open'
   | 'counterparties.write' | 'invoices.read' | 'invoices.write' | 'sites.read' | 'sites.write' | 'site.records'
-  | 'audit.read' | 'reference.write' | 'evidence.read' | 'deals.documents';
+  | 'audit.read' | 'reference.write' | 'evidence.read' | 'deals.documents' | 'analytics.read';
 
 const RULES: Record<Permission, readonly string[]> = {
   'deals.read': GROUPS.office,
@@ -38,6 +38,7 @@ const RULES: Record<Permission, readonly string[]> = {
   'reference.write': GROUPS.admin,
   'evidence.read': GROUPS.office,
   'deals.documents': GROUPS.salesOrProject,
+  'analytics.read': GROUPS.office,
 };
 
 export function can(permission: Permission, roles: string[] | null = authEnabled ? currentUser()?.roles ?? [] : null): boolean {

@@ -251,6 +251,34 @@ export interface EvidenceOverview {
   items: EvidenceItem[]; checks: EvidenceCheck[]; score: { ok: number; warn: number; missing: number };
   lastExport: { at: string; by: string | null; sha256sums: string | null; files: number | null } | null;
 }
+export type MarginCut = 'DEAL' | 'CUSTOMER' | 'SUBCONTRACTOR' | 'WORK_TYPE' | 'DIRECTION' | 'COUNTRY' | 'MONTH';
+export type MarginScope = 'CONTRACTED' | 'PIPELINE';
+export interface MarginFilter {
+  scope?: MarginScope; from?: string; to?: string; direction?: string; country?: string; currency?: string;
+}
+export interface MarginRow {
+  key: string; label: string; sub: string | null; deals: number; price: number; cost: number; margin: number;
+  marginPct: number | null;
+}
+export interface MarginTotals { deals: number; price: number; cost: number; margin: number; marginPct: number | null }
+export interface MarginReport {
+  currency: string; ratesOn: string; rates: { currency: string; czkPerUnit: number; validFor: string; source: string }[];
+  missingRates: string[]; totals: MarginTotals; cuts: Record<MarginCut, MarginRow[]>;
+}
+export interface SiteHealthRow {
+  siteId: string; dealId: string; dealNumber: string | null; name: string; city: string | null; country: string | null;
+  status: SiteStatus; plannedEnd: string | null; progressPct: number; lateTasks: number; openDefects: number;
+  overdueDefects: number; pendingChangeOrders: number; pendingChangePrice: number; currency: string | null;
+}
+export interface PartyRisk {
+  id: string; name: string; country: string; status: CheckStatus | null; roles: ('CUSTOMER' | 'SUBCONTRACTOR')[];
+  deals: string[];
+}
+export interface PackageRisk {
+  dealId: string; number: string; title: string; status: DealStatus; missing: number; warn: number; gaps: EvidenceCheck[];
+}
+export interface AnalyticsHealth { sites: SiteHealthRow[]; counterparties: PartyRisk[]; packages: PackageRisk[] }
+
 export interface EvidenceExport { blob: Blob; fileName: string; sha256sums: string | null }
 
 export interface DiaryEntry {
@@ -447,6 +475,9 @@ export interface Api {
   evidence(dealId: string): Promise<EvidenceOverview>;
   /** Builds the ZIP (recorded in the audit log); a text stand-in in demo mode. */
   exportEvidence(dealId: string): Promise<EvidenceExport>;
+
+  analyticsMargin(filter?: MarginFilter): Promise<MarginReport>;
+  analyticsHealth(): Promise<AnalyticsHealth>;
 
   openOffer(token: string): Promise<OfferPage>;
   submitOffer(token: string, prices: Record<string, number>, note: string): Promise<OfferPage>;

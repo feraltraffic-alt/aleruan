@@ -11,6 +11,7 @@ const LIVE: NavItem[] = [
   { to: '/deals', key: 'nav.deals', perm: 'deals.read' },
   { to: '/sites', key: 'nav.projects', perm: 'sites.read' },
   { to: '/invoices', key: 'nav.invoices', perm: 'invoices.read' },
+  { to: '/analytics', key: 'nav.analytics', perm: 'analytics.read' },
   { to: '/counterparties', key: 'nav.counterparties' },
 ];
 const UPCOMING: MessageKey[] = ['nav.warehouse'];

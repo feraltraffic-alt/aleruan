@@ -221,6 +221,10 @@ export const httpApi: Api = {
       sha256sums: res.headers.get('X-Evidence-Sha256sums') };
   },
 
+  analyticsMargin: (f = {}) => request(`/analytics/margin${qs({ scope: f.scope, from: f.from, to: f.to,
+    direction: f.direction, country: f.country, currency: f.currency })}`),
+  analyticsHealth: () => request('/analytics/health'),
+
   openOffer: (token) => request(`/public/rfq/${token}`),
   submitOffer: (token, prices, note) => request(`/public/rfq/${token}/offer`, json('POST', { prices, note })),
 };

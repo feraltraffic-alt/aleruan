@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
-import { api, type Deal, type DealDocument, type EvidenceCheck, type EvidenceItem, type EvidenceSection } from '../api';
-import { useI18n, type MessageKey } from '../i18n';
+import { api, type Deal, type DealDocument, type EvidenceItem, type EvidenceSection } from '../api';
+import { useI18n } from '../i18n';
+import { useCheckText } from './evidenceText';
 import { can } from '../permissions';
 import { LoadError } from './LoadError';
 import { useAction } from './useAction';
@@ -8,8 +9,6 @@ import { useLoad } from './useLoad';
 
 const SECTIONS: EvidenceSection[] = ['CONTRACT', 'QUOTES', 'CHANGE_ORDERS', 'ACCEPTANCE', 'INVOICES', 'DIARY', 'DEFECTS',
   'CHECKS', 'AUDIT'];
-const MONEY = new Set(['accepted', 'contract']);
-const DAYS = new Set(['date', 'due']);
 
 function saveBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -24,7 +23,7 @@ function saveBlob(blob: Blob, name: string) {
 
 /** The deal's evidence package: what is missing, the contract papers, what the archive will hold, and the download. */
 export function DealEvidence({ deal }: { deal: Deal }) {
-  const { t, date, day, money } = useI18n();
+  const { t, date } = useI18n();
   const overview = useLoad(() => api.evidence(deal.id), [deal.id, deal.status]);
   const docs = useLoad(() => api.dealDocuments(deal.id), [deal.id]);
   const exporting = useAction();
@@ -32,21 +31,7 @@ export function DealEvidence({ deal }: { deal: Deal }) {
   const upload = useRef<HTMLInputElement>(null);
   const canDocs = can('deals.documents');
 
-  const tr = (key: string, vars?: Record<string, string | number>) => {
-    const text = t(key as MessageKey, vars);
-    return text === key ? null : text;
-  };
-  const checkText = (c: EvidenceCheck) => {
-    const vars: Record<string, string> = {};
-    Object.entries(c.params).forEach(([k, v]) => {
-      vars[k] = MONEY.has(k) ? money(Number(v), c.params.currency || null)
-        : DAYS.has(k) ? day(v)
-        : k === 'status' ? (tr(`status.${v}`) ?? v)
-        : k === 'role' ? (tr(`ev.role.${v}`) ?? v)
-        : v;
-    });
-    return tr(`ev.check.${c.code}.${c.level}`, vars) ?? `${c.code} (${c.level})`;
-  };
+  const checkText = useCheckText();
 
   const download = async () => {
     const res = await exporting.run(() => api.exportEvidence(deal.id));

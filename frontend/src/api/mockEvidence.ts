@@ -29,7 +29,7 @@ export const safeName = (name: string) => {
 const hex = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join('');
 
 export function createEvidenceMock(
-  api: Omit<Api, keyof EvidenceApi>, counterparties: Counterparty[], audit: AuditRecord[],
+  api: Omit<Api, keyof EvidenceApi | 'analyticsMargin' | 'analyticsHealth'>, counterparties: Counterparty[], audit: AuditRecord[],
   record: (type: string, id: string, action: string, payload: unknown) => void,
   delay: <T>(v: T) => Promise<T>,
 ): EvidenceApi {

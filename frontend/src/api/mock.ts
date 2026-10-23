@@ -4,6 +4,7 @@ import type {
 import { ApiError } from './http';
 import { createDealsMock } from './mockDeals';
 import { createEvidenceMock, type EvidenceApi } from './mockEvidence';
+import { createAnalyticsMock, type AnalyticsApi } from './mockAnalytics';
 
 /**
  * In-memory API for demos and tests (VITE_USE_MOCKS=true).
@@ -78,7 +79,7 @@ export function createMockApi(): Api {
 
   const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(structuredClone(v)), 150));
 
-  const base: Omit<Api, keyof EvidenceApi> = {
+  const base: Omit<Api, keyof EvidenceApi | keyof AnalyticsApi> = {
     ...createDealsMock(counterparties, record, delay),
     listCounterparties: (q, role) => {
       const needle = q?.toLowerCase().trim();
@@ -159,5 +160,6 @@ export function createMockApi(): Api {
       return delay(c);
     },
   };
-  return { ...base, ...createEvidenceMock(base, counterparties, audit, record, delay) };
+  const withEvidence = { ...base, ...createEvidenceMock(base, counterparties, audit, record, delay) };
+  return { ...withEvidence, ...createAnalyticsMock(withEvidence, counterparties, delay) };
 }
