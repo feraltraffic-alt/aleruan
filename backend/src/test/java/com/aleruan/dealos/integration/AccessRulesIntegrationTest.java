@@ -54,7 +54,8 @@ class AccessRulesIntegrationTest {
     @Test
     void anonymousCallersNeedALoginExceptOnPublicLinks() throws Exception {
         mvc.perform(get("/api/deals")).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/public/rfq/not-a-token")).andExpect(status().isNotFound());
+        mvc.perform(get("/api/public/rfq/" + "A".repeat(43))).andExpect(status().isNotFound()); // well-formed, unknown
+        mvc.perform(get("/api/public/rfq/not-a-token")).andExpect(status().isBadRequest());
         mvc.perform(get("/actuator/health")).andExpect(status().isOk());
     }
 
