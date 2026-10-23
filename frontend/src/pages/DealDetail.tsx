@@ -16,6 +16,7 @@ import { QuotesSection } from './Quotes';
 import { DealSite } from '../components/DealSite';
 import { DealInvoicing } from '../components/DealInvoicing';
 import { DealEvidence } from '../components/DealEvidence';
+import { ReceivedInvoices } from '../components/ReceivedInvoices';
 import { ChangeOrdersSection } from './ChangeOrders';
 
 /** Moves that end the deal ask for a second click. */
@@ -205,6 +206,13 @@ export function DealDetailPage() {
 
       <QuotesSection deal={d} onIssued={deal.reload} />
       {can('invoices.read') && <DealInvoicing deal={d} />}
+      {can('invoices.read') && (
+        <section className="section" aria-label={t('rcv.dealTitle')}>
+          <div className="section-head"><div><h2>{t('rcv.dealTitle')}</h2><p className="lead">{t('rcv.dealLead')}</p></div>
+            {can('import.use') && <Link className="btn" to="/import">{t('rcv.import')}</Link>}</div>
+          <ReceivedInvoices dealId={d.id} />
+        </section>
+      )}
 
       <ChangeOrdersSection deal={d} />
 

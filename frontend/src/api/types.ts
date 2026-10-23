@@ -279,6 +279,51 @@ export interface PackageRisk {
 }
 export interface AnalyticsHealth { sites: SiteHealthRow[]; counterparties: PartyRisk[]; packages: PackageRisk[] }
 
+export type ImportStatus = 'QUEUED' | 'PROCESSING' | 'EXTRACTED' | 'FAILED' | 'CONFIRMED' | 'REJECTED';
+export type DocType = 'SUPPLIER_INVOICE' | 'CUSTOMER_INVOICE' | 'CREDIT_NOTE' | 'CMR' | 'CONTRACT' | 'OTHER';
+export type PartyRole = 'CUSTOMER' | 'SUBCONTRACTOR' | 'SUPPLIER' | 'CARRIER';
+export interface ImportDoc {
+  id: string; fileName: string; contentType: string; status: ImportStatus; docType: DocType | null; summary: string | null;
+  documentNumber: string | null; partyName: string | null; totalAmount: string | null; currency: string | null;
+  error: string | null; model: string | null; inputTokens: number | null; outputTokens: number | null; attempts: number;
+  dealId: string | null; resultType: 'SUPPLIER_INVOICE' | 'DEAL_DOCUMENT' | 'COUNTERPARTY' | 'ARCHIVED' | null;
+  resultId: string | null; uploadedAt: string; uploadedBy: string | null; processedAt: string | null;
+  decidedAt: string | null; decidedBy: string | null;
+}
+export interface ReadParty { name: string; companyId: string; vatNumber: string; address: string; country: string; bankAccount: string }
+export interface ReadLine { description: string; quantity: string; unit: string; unitPrice: string; total: string; vatRate: string }
+export interface Extraction {
+  documentType: DocType; summary: string; documentNumber: string; issueDate: string; taxableDate: string; dueDate: string;
+  currency: string; variableSymbol: string; issuer: ReadParty; recipient: ReadParty; netAmount: string; vatAmount: string;
+  totalAmount: string; vatNote: string; references: string; lines: ReadLine[]; warnings: string[];
+}
+export interface ImportReview {
+  type: DocType; documentNumber: string | null; issueDate: string | null; taxableDate: string | null; dueDate: string | null;
+  currency: string | null; variableSymbol: string | null; netAmount: number | null; vatAmount: number | null;
+  totalAmount: number | null; vatNote: string | null;
+  party: { name: string; country: string; companyId: string | null; vatNumber: string | null; address: string | null;
+    bankAccount: string | null } | null;
+  counterpartyId: string | null; role: PartyRole | null; dealId: string | null;
+}
+export interface ImportWarning { code: string; params: Record<string, string> }
+export interface ImportDetail {
+  document: ImportDoc; read: Extraction | null; confirmed: ImportReview | null; warnings: ImportWarning[];
+  suggestion: { type: DocType; party: ReadParty; role: PartyRole | null;
+    match: { id: string; legalName: string; country: string; checkStatus: CheckStatus | null; companyId: string | null;
+      vatNumber: string | null } | null;
+    duplicateInvoice: boolean };
+}
+export interface ImportOutcome { resultType: string; resultId: string | null; counterpartyId: string | null; counterpartyCreated: boolean }
+export interface ImportQueue { readerConfigured: boolean; model: string | null; queued: number; processing: number; failed: number; toReview: number }
+export interface SupplierInvoice {
+  id: string; supplier: { id: string; legalName: string; country: string | null; checkStatus: CheckStatus | null };
+  dealId: string | null; dealNumber: string | null; number: string; variableSymbol: string | null; issueDate: string | null;
+  taxableDate: string | null; dueDate: string | null; currency: string; netAmount: number | null; vatAmount: number | null;
+  total: number; vatNote: string | null; bankAccount: string | null; accountCheck: CheckStatus | null; hasFile: boolean;
+  fileSha256: string | null; importId: string | null; paidOn: string | null; overdue: boolean; createdAt: string;
+  createdBy: string | null;
+}
+
 export interface EvidenceExport { blob: Blob; fileName: string; sha256sums: string | null }
 
 export interface DiaryEntry {
@@ -475,6 +520,19 @@ export interface Api {
   evidence(dealId: string): Promise<EvidenceOverview>;
   /** Builds the ZIP (recorded in the audit log); a text stand-in in demo mode. */
   exportEvidence(dealId: string): Promise<EvidenceExport>;
+
+  importQueue(): Promise<ImportQueue>;
+  listImports(status?: ImportStatus): Promise<ImportDoc[]>;
+  uploadImport(file: Blob, fileName: string): Promise<{ document: ImportDoc; duplicate: boolean }>;
+  getImport(id: string): Promise<ImportDetail>;
+  importFile(id: string): Promise<Blob>;
+  retryImport(id: string): Promise<ImportDoc>;
+  rejectImport(id: string, reason: string | null): Promise<ImportDoc>;
+  confirmImport(id: string, review: ImportReview): Promise<ImportOutcome>;
+  listSupplierInvoices(filter?: { dealId?: string; supplierId?: string }): Promise<SupplierInvoice[]>;
+  supplierInvoiceFile(id: string): Promise<Blob>;
+  linkSupplierInvoice(id: string, dealId: string | null): Promise<SupplierInvoice>;
+  paySupplierInvoice(id: string, paidOn: string | null): Promise<SupplierInvoice>;
 
   analyticsMargin(filter?: MarginFilter): Promise<MarginReport>;
   analyticsHealth(): Promise<AnalyticsHealth>;

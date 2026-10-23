@@ -2,6 +2,7 @@ import type {
   Api, AuditRecord, Counterparty, DealDocument, EvidenceCheck, EvidenceItem, EvidenceLevel, EvidenceOverview,
 } from './types';
 import { ApiError } from './http';
+import type { ImportApi } from './mockImport';
 import { localToday } from '../dates';
 
 /** Evidence package for the demo API: the same sections and completeness rules as the backend's EvidenceService. */
@@ -29,7 +30,7 @@ export const safeName = (name: string) => {
 const hex = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join('');
 
 export function createEvidenceMock(
-  api: Omit<Api, keyof EvidenceApi | 'analyticsMargin' | 'analyticsHealth'>, counterparties: Counterparty[], audit: AuditRecord[],
+  api: Omit<Api, keyof EvidenceApi | 'analyticsMargin' | 'analyticsHealth' | keyof ImportApi>, counterparties: Counterparty[], audit: AuditRecord[],
   record: (type: string, id: string, action: string, payload: unknown) => void,
   delay: <T>(v: T) => Promise<T>,
 ): EvidenceApi {

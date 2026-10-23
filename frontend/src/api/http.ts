@@ -221,6 +221,19 @@ export const httpApi: Api = {
       sha256sums: res.headers.get('X-Evidence-Sha256sums') };
   },
 
+  importQueue: () => request('/imports/queue'),
+  listImports: (status) => request(`/imports${qs({ status })}`),
+  uploadImport: (file, fileName) => upload('/imports', file, fileName),
+  getImport: (id) => request(`/imports/${id}`),
+  importFile: (id) => blob(`/imports/${id}/file`),
+  retryImport: (id) => request(`/imports/${id}/retry`, { method: 'POST' }),
+  rejectImport: (id, reason) => request(`/imports/${id}/reject`, json('POST', { reason })),
+  confirmImport: (id, review) => request(`/imports/${id}/confirm`, json('POST', review)),
+  listSupplierInvoices: (f = {}) => request(`/supplier-invoices${qs({ dealId: f.dealId, supplierId: f.supplierId })}`),
+  supplierInvoiceFile: (id) => blob(`/supplier-invoices/${id}/file`),
+  linkSupplierInvoice: (id, dealId) => request(`/supplier-invoices/${id}/deal`, json('PUT', { dealId })),
+  paySupplierInvoice: (id, paidOn) => request(`/supplier-invoices/${id}/paid`, json('POST', { paidOn })),
+
   analyticsMargin: (f = {}) => request(`/analytics/margin${qs({ scope: f.scope, from: f.from, to: f.to,
     direction: f.direction, country: f.country, currency: f.currency })}`),
   analyticsHealth: () => request('/analytics/health'),

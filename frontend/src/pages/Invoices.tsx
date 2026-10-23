@@ -1,14 +1,42 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, type InvoiceStatus } from '../api';
 import { LoadError } from '../components/LoadError';
 import { InvoiceStatusTag } from '../components/invoiceBits';
+import { ReceivedInvoices } from '../components/ReceivedInvoices';
 import { useLoad } from '../components/useLoad';
 import { useI18n } from '../i18n';
 
 const STATUSES: InvoiceStatus[] = ['DRAFT', 'ISSUED', 'PAID', 'CREDITED'];
 
 export function InvoicesPage() {
+  const { t } = useI18n();
+  const [params, setParams] = useSearchParams();
+  const tab = params.get('tab') === 'received' ? 'received' : 'issued';
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <h1>{t('inv.title')}</h1>
+          <p className="lead">{t(tab === 'received' ? 'rcv.lead' : 'inv.lead')}</p>
+        </div>
+        <div className="moves">
+          <Link className="btn" to="/import">{t('rcv.import')}</Link>
+          <Link className="btn" to="/invoices/money-s4">{t('money.title')}</Link>
+        </div>
+      </div>
+      <div className="tabs" role="tablist">
+        {(['issued', 'received'] as const).map((k) => (
+          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''}
+            onClick={() => setParams(k === 'issued' ? {} : { tab: k }, { replace: true })}>{t(`inv.tab.${k}`)}</button>
+        ))}
+      </div>
+      <div className="tab-body">{tab === 'issued' ? <IssuedInvoices /> : <ReceivedInvoices />}</div>
+    </>
+  );
+}
+
+function IssuedInvoices() {
   const { t, day, money } = useI18n();
   const navigate = useNavigate();
   const [status, setStatus] = useState<InvoiceStatus | ''>('');
@@ -27,13 +55,6 @@ export function InvoicesPage() {
 
   return (
     <>
-      <div className="page-head">
-        <div>
-          <h1>{t('inv.title')}</h1>
-          <p className="lead">{t('inv.lead')}</p>
-        </div>
-        <Link className="btn" to="/invoices/money-s4">{t('money.title')}</Link>
-      </div>
       {owed.size > 0 && !status && !overdue && (
         <div className="panel owed">
           {[...owed.entries()].map(([cur, o]) => (
