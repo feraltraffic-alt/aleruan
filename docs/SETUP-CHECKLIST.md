@@ -15,6 +15,10 @@
 | 10 | Контакты в шапке КП: email, телефон, сайт Aleruan (и подтверждение банка/IBAN для КП) | Лена | Клиент | `DEALOS_COMPANY_EMAIL`, `DEALOS_COMPANY_PHONE`, `DEALOS_COMPANY_WEB`, `DEALOS_COMPANY_IBAN` | нужно |
 | 11 | Ключ Google Maps (браузерный) для карты объектов и поиска адреса | console.cloud.google.com → новый проект → включить **Maps JavaScript API** и **Geocoding API** → Credentials → Create API key → ограничить: Application restrictions = Websites (домен системы), API restrictions = эти два API. Нужна привязанная карта оплаты (у Google есть бесплатный ежемесячный лимит) | Клиент (аккаунт Google на Aleruan) | `GOOGLE_MAPS_API_KEY` на сервере, пересборка не нужна | нужно |
 | 12 | Map ID для своего стиля карты | Google Cloud → Map Management → Create Map ID (JavaScript, Vector) | Клиент | `GOOGLE_MAPS_MAP_ID` | по желанию |
+| 13 | API-ключ Anthropic (Claude) для импорта документов: старые фактуры, счета исполнителей, договоры, CMR | console.anthropic.com → аккаунт на Aleruan → Billing → API Keys | Клиент | будет добавлено с модулем импорта | скоро |
+| 14 | Договор об обработке данных (DPA) с Anthropic — документы клиентов уходят во внешний сервис | Условия Anthropic для коммерческих клиентов; проверить юристу/бухгалтеру | Клиент | — | скоро |
+| 15 | 5–10 реальных документов-образцов для настройки импорта (фактура Aleruan, счёт исполнителя, CMR, договор, Excel с клиентами) | Лена | Клиент | передать мне | нужно |
+| 16 | Согласовать права по ролям (docs/ROLES.md) | Лена | Клиент | — | нужно |
 | 9 | GitHub: доступ приложения Claude к репозиторию | github.com/apps/claude | Студия | — | готово |
 
 Не нужны ключи: VIES, ARES, Registr DPH, Biała lista, KRS, курсы ČNB/NBP — это открытые государственные сервисы.
