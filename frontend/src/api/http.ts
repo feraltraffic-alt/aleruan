@@ -12,6 +12,11 @@ export class ApiError extends Error {
   }
 }
 
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = await accessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = await accessToken();
   const res = await fetch(`/api${path}`, {
@@ -80,6 +85,15 @@ export const httpApi: Api = {
   invite: (rfqId, subcontractorId, allowRisky) => request(`/rfqs/${rfqId}/invitations`, json('POST', { subcontractorId, allowRisky })),
   award: (rfqId, invitationId) => request(`/rfqs/${rfqId}/award`, json('POST', { invitationId })),
   cancelRfq: (rfqId) => request(`/rfqs/${rfqId}/cancel`, json('POST')),
+
+  quoteDefaults: (dealId) => request(`/deals/${dealId}/quotes/defaults`),
+  listQuotes: (dealId) => request(`/deals/${dealId}/quotes`),
+  issueQuote: (dealId, input) => request(`/deals/${dealId}/quotes`, json('POST', input)),
+  quoteFile: async (id) => {
+    const res = await fetch(`/api/quotes/${id}/pdf`, { headers: await authHeaders() });
+    if (!res.ok) throw new ApiError(res.status, res.statusText);
+    return res.blob();
+  },
 
   openOffer: (token) => request(`/public/rfq/${token}`),
   submitOffer: (token, prices, note) => request(`/public/rfq/${token}/offer`, json('POST', { prices, note })),

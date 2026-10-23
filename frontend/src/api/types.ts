@@ -179,6 +179,23 @@ export interface OfferPage {
   myPrices: Record<string, number>; myNote: string | null; submittedAt: string | null;
 }
 
+export type QuoteLanguage = 'CS' | 'EN' | 'PL' | 'DE';
+export type VatMode = 'STANDARD' | 'REVERSE_CHARGE_EU' | 'REVERSE_CHARGE_CZ' | 'OUTSIDE_SCOPE';
+export type VatReason = 'CUSTOMER_OUTSIDE_EU' | 'SITE_IN_OTHER_EU_STATE' | 'EU_BUSINESS_CUSTOMER'
+  | 'CZ_CONSTRUCTION_FOR_VAT_PAYER' | 'DOMESTIC_STANDARD' | 'CHECK_WITH_ACCOUNTANT';
+
+export interface QuoteDefaults { language: QuoteLanguage; vatMode: VatMode; vatRate: number; reason: VatReason; validDays: number }
+
+export interface Quote {
+  id: string; number: string; version: number; language: QuoteLanguage; vatMode: VatMode; vatRate: number;
+  currency: string; subtotal: number; vatAmount: number; total: number; issuedOn: string; validUntil: string;
+  issuedAt: string; issuedBy: string | null; pdfSha256: string;
+}
+
+export interface IssueQuote {
+  language: QuoteLanguage; validDays: number; vatMode: VatMode; vatRate?: number | null; terms?: string | null;
+}
+
 export interface Api {
   listCounterparties(q?: string, role?: CounterpartyRole): Promise<Counterparty[]>;
   getCounterparty(id: string): Promise<Counterparty>;
@@ -208,6 +225,12 @@ export interface Api {
   invite(rfqId: string, subcontractorId: string, allowRisky: boolean): Promise<{ invitation: RfqInvitation; offerPath: string }>;
   award(rfqId: string, invitationId: string): Promise<Rfq>;
   cancelRfq(rfqId: string): Promise<Rfq>;
+
+  quoteDefaults(dealId: string): Promise<QuoteDefaults>;
+  listQuotes(dealId: string): Promise<Quote[]>;
+  issueQuote(dealId: string, input: IssueQuote): Promise<Quote>;
+  /** The stored document (PDF in production, an HTML stand-in in demo mode). */
+  quoteFile(id: string): Promise<Blob>;
 
   openOffer(token: string): Promise<OfferPage>;
   submitOffer(token: string, prices: Record<string, number>, note: string): Promise<OfferPage>;

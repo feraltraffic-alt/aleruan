@@ -11,6 +11,7 @@ import { useLoad } from '../components/useLoad';
 import { useI18n } from '../i18n';
 import { parseNum } from '../numbers';
 import { LineForm } from './LineForm';
+import { QuotesSection } from './Quotes';
 
 /** Moves that end the deal ask for a second click. */
 const FINAL: DealStatus[] = ['LOST', 'CANCELLED'];
@@ -185,6 +186,8 @@ export function DealDetailPage() {
           )}
         </div>
       </section>
+
+      <QuotesSection deal={d} onIssued={deal.reload} />
 
       <section className="section">
         <div className="section-head">

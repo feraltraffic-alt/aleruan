@@ -1,15 +1,16 @@
 import type {
   Api, Candidate, Counterparty, Deal, DealLine, DealListItem, DealStatus, DealWarning, LineData, OfferPage, PartyRef,
-  Rfq, RfqInvitation,
+  Quote, Rfq, RfqInvitation,
 } from './types';
 import { ApiError } from './http';
 import { priceLine, totals } from '../pricing';
+import { languageFor, suggestVat, vatAmount } from '../vat';
 
 /** Deals and tenders for the demo API; mirrors the backend rules that the UI relies on. */
 
 type DealsApi = Pick<Api, 'listDeals' | 'getDeal' | 'createDeal' | 'editDeal' | 'addLine' | 'updateLine' | 'removeLine'
   | 'moveDeal' | 'dealRfqs' | 'createRfq' | 'getRfq' | 'rfqCandidates' | 'invite' | 'award' | 'cancelRfq'
-  | 'openOffer' | 'submitOffer'>;
+  | 'openOffer' | 'submitOffer' | 'quoteDefaults' | 'listQuotes' | 'issueQuote' | 'quoteFile'>;
 
 interface StoredLine extends LineData { id: string; position: number }
 interface StoredDeal {
@@ -43,6 +44,7 @@ export function createDealsMock(
 ): DealsApi {
   const deals: StoredDeal[] = [];
   const rfqs: StoredRfq[] = [];
+  const quotes: (Quote & { dealId: string; html: string })[] = [];
   let seq = 0;
 
   const party = (id: string | null | undefined): Counterparty | undefined => counterparties.find((c) => c.id === id);
@@ -316,6 +318,52 @@ export function createDealsMock(
       r.status = 'CANCELLED';
       record('Rfq', rfqId, 'CANCELLED', {});
       return delay(rfqView(r));
+    },
+
+    quoteDefaults: async (dealId) => {
+      const d = findDeal(dealId);
+      const c = party(d.customerId)!;
+      const s = suggestVat(c.country, c.vatNumber, d.siteCountry, d.direction === 'CONSTRUCTION');
+      return delay({ language: languageFor(c.country), vatMode: s.mode, vatRate: s.rate, reason: s.reason, validDays: 30 });
+    },
+    listQuotes: async (dealId) => {
+      findDeal(dealId);
+      return delay(quotes.filter((q) => q.dealId === dealId).sort((a, b) => b.version - a.version)
+        .map(({ dealId: _d, html: _h, ...q }) => q));
+    },
+    issueQuote: async (dealId, input) => {
+      const d = findDeal(dealId);
+      if (!d.lines.length) throw new ApiError(409, `Deal ${d.number} has no lines to quote`);
+      if (!pricesEditable(d.status)) {
+        throw new ApiError(409, `Deal ${d.number} is ${d.status}; a new quote is possible only before the customer accepts`);
+      }
+      if (d.status === 'DRAFT') { d.status = 'QUOTED'; record('Deal', d.id, 'STATUS_CHANGED', { status: 'QUOTED' }); }
+      const v = view(d);
+      const rate = input.vatMode === 'STANDARD' ? (input.vatRate ?? 21) : 0;
+      const vat = vatAmount(v.totals.price, input.vatMode, rate);
+      const version = quotes.filter((q) => q.dealId === dealId).length + 1;
+      const today = new Date();
+      const until = new Date(today.getTime() + input.validDays * 86_400_000);
+      const number = d.number.replace(/^D-/, 'Q-') + (version > 1 ? `/${version}` : '');
+      const q = {
+        id: uid(), dealId, number, version, language: input.language, vatMode: input.vatMode, vatRate: rate,
+        currency: d.currency, subtotal: v.totals.price, vatAmount: vat, total: Math.round((v.totals.price + vat) * 100) / 100,
+        issuedOn: today.toISOString().slice(0, 10), validUntil: until.toISOString().slice(0, 10), issuedAt: now(),
+        issuedBy: 'demo', pdfSha256: Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join(''),
+        html: `<!doctype html><meta charset="utf-8"><title>${number}</title><body style="font-family:sans-serif;padding:32px">`
+          + `<p>Demo: the real system stores a PDF here.</p><h1>${number}</h1><p>${d.title}</p><ul>`
+          + v.lines.map((l) => `<li>${l.description}: ${l.quantity} ${l.unit ?? ''} × ${l.unitPrice.toFixed(2)}</li>`).join('')
+          + `</ul><p><b>${(v.totals.price + vat).toFixed(2)} ${d.currency}</b></p>`,
+      };
+      quotes.push(q);
+      record('Quote', q.id, 'ISSUED', { number, total: q.total });
+      const { dealId: _d, html: _h, ...out } = q;
+      return delay(out);
+    },
+    quoteFile: async (id) => {
+      const q = quotes.find((x) => x.id === id);
+      if (!q) throw new ApiError(404, `Quote ${id} not found`);
+      return new Blob([q.html], { type: 'text/html' });
     },
 
     openOffer: async (token) => {
