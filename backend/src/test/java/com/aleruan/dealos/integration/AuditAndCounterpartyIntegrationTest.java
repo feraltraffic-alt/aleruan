@@ -10,57 +10,22 @@ import com.aleruan.dealos.counterparty.domain.CheckSource;
 import com.aleruan.dealos.counterparty.domain.CheckStatus;
 import com.aleruan.dealos.counterparty.domain.Counterparty;
 import com.aleruan.dealos.counterparty.domain.CounterpartyRole;
-import com.aleruan.dealos.counterparty.domain.RegistrySnapshot;
 import com.aleruan.dealos.counterparty.application.AccountCheckService;
 import com.aleruan.dealos.counterparty.domain.CheckFinding;
-import com.aleruan.dealos.counterparty.registry.LookupRequest;
-import com.aleruan.dealos.counterparty.registry.RegistryClient;
 import com.aleruan.dealos.counterparty.sanctions.SanctionsService;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 import com.aleruan.dealos.platform.audit.AuditService;
 import com.aleruan.dealos.platform.web.ConflictException;
-import java.time.Instant;
-import java.time.LocalDate;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * End-to-end against real PostgreSQL: Flyway migrations, audit chain + append-only trigger,
  * counterparty creation, duplicate protection, checks with a stub registry (no network in CI).
  */
-@SpringBootTest(properties = {"dealos.security.enabled=false", "dealos.registry.live=false"})
-@Testcontainers
-class AuditAndCounterpartyIntegrationTest {
-
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-    @TestConfiguration
-    static class StubRegistry {
-        @Bean
-        RegistryClient stubAres() {
-            return new RegistryClient() {
-                public CheckSource source() { return CheckSource.ARES; }
-                public boolean supports(LookupRequest r) { return "CZ".equals(r.country()); }
-                public Optional<RegistrySnapshot> lookup(LookupRequest r) {
-                    return Optional.of(RegistrySnapshot.builder(CheckSource.ARES, Instant.now()).found(true)
-                            .legalName("Stub s.r.o.").registeredOn(LocalDate.parse("2020-01-01"))
-                            .insolvency(false).rawResponse("{}").build());
-                }
-            };
-        }
-    }
+class AuditAndCounterpartyIntegrationTest extends IntegrationTestBase {
 
     @Autowired CounterpartyService counterparties;
     @Autowired CounterpartyCheckService checks;

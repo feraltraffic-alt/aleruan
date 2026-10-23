@@ -43,15 +43,19 @@ class CounterpartyController {
             String address,
             @Email String email,
             String phone,
-            @NotEmpty Set<CounterpartyRole> roles) {
+            @NotEmpty Set<CounterpartyRole> roles,
+            Set<String> workTypes) {
+    }
+
+    record WorkTypesRequest(Set<String> workTypes) {
     }
 
     record CounterpartyView(UUID id, String legalName, String country, String companyId, String vatNumber,
                             String address, String email, String phone, Set<CounterpartyRole> roles,
-                            CheckStatus checkStatus, Instant lastCheckedAt, Instant createdAt) {
+                            Set<String> workTypes, CheckStatus checkStatus, Instant lastCheckedAt, Instant createdAt) {
         static CounterpartyView of(Counterparty c) {
             return new CounterpartyView(c.getId(), c.getLegalName(), c.getCountry(), c.getCompanyId(),
-                    c.getVatNumber(), c.getAddress(), c.getEmail(), c.getPhone(), c.getRoles(),
+                    c.getVatNumber(), c.getAddress(), c.getEmail(), c.getPhone(), c.getRoles(), c.getWorkTypes(),
                     c.getCheckStatus(), c.getLastCheckedAt(), c.getCreatedAt());
         }
     }
@@ -104,7 +108,12 @@ class CounterpartyController {
     CounterpartyView create(@Valid @RequestBody CreateRequest r) {
         return CounterpartyView.of(service.create(new CounterpartyService.NewCounterparty(
                 r.legalName(), r.country(), r.companyId(), r.vatNumber(), r.address(), r.email(), r.phone(),
-                r.roles())));
+                r.roles(), r.workTypes() == null ? Set.of() : r.workTypes())));
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/{id}/work-types")
+    CounterpartyView setWorkTypes(@PathVariable UUID id, @RequestBody WorkTypesRequest r) {
+        return CounterpartyView.of(service.setWorkTypes(id, r.workTypes() == null ? Set.of() : r.workTypes()));
     }
 
     @PostMapping("/{id}/checks")

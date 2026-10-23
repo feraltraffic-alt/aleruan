@@ -22,7 +22,12 @@ public class CounterpartyService {
 
     /** Input for creating a counterparty; identifiers are normalised and validated here. */
     public record NewCounterparty(String legalName, String country, String companyId, String vatNumber,
-                                  String address, String email, String phone, Set<CounterpartyRole> roles) {
+                                  String address, String email, String phone, Set<CounterpartyRole> roles,
+                                  Set<String> workTypes) {
+        public NewCounterparty(String legalName, String country, String companyId, String vatNumber, String address,
+                               String email, String phone, Set<CounterpartyRole> roles) {
+            this(legalName, country, companyId, vatNumber, address, email, phone, roles, Set.of());
+        }
     }
 
     private final CounterpartyRepository repository;
@@ -50,8 +55,18 @@ public class CounterpartyService {
         Counterparty saved = repository.save(new Counterparty(input.legalName().trim(), country, companyId, vat,
                 blankToNull(input.address()), blankToNull(input.email()), blankToNull(input.phone()),
                 input.roles(), clock.instant()));
+        saved.setWorkTypes(input.workTypes());
         audit.record(AUDIT_TYPE, saved.getId().toString(), "CREATED", input);
         return saved;
+    }
+
+    /** Replace the work types a subcontractor/supplier covers. */
+    @Transactional
+    public Counterparty setWorkTypes(UUID id, Set<String> workTypes) {
+        Counterparty c = get(id);
+        c.setWorkTypes(workTypes);
+        audit.record(AUDIT_TYPE, id.toString(), "WORK_TYPES_SET", workTypes);
+        return c;
     }
 
     @Transactional(readOnly = true)

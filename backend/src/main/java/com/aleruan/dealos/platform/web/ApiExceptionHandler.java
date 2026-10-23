@@ -19,6 +19,12 @@ class ApiExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
     }
 
+    /** A rule of the current state forbids the operation (e.g. prices frozen after the customer accepted). */
+    @ExceptionHandler(IllegalStateException.class)
+    ProblemDetail invalidState(IllegalStateException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     ProblemDetail badRequest(IllegalArgumentException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());

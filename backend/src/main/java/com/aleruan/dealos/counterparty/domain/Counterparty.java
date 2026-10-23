@@ -46,6 +46,12 @@ public class Counterparty {
     @Column(name = "role")
     private Set<CounterpartyRole> roles = EnumSet.noneOf(CounterpartyRole.class);
 
+    /** Work type codes (reference catalogue) a subcontractor or supplier covers. */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "counterparty_work_type", joinColumns = @JoinColumn(name = "counterparty_id"))
+    @Column(name = "work_type")
+    private Set<String> workTypes = new java.util.HashSet<>();
+
     @Enumerated(EnumType.STRING)
     @Column(name = "check_status")
     private CheckStatus checkStatus;
@@ -79,6 +85,10 @@ public class Counterparty {
         this.createdAt = createdAt;
     }
 
+    public void setWorkTypes(Set<String> codes) {
+        this.workTypes = codes == null ? new java.util.HashSet<>() : new java.util.HashSet<>(codes);
+    }
+
     public void applyVerdict(CheckStatus status, Instant checkedAt) {
         this.checkStatus = status;
         this.lastCheckedAt = checkedAt;
@@ -93,6 +103,7 @@ public class Counterparty {
     public String getEmail() { return email; }
     public String getPhone() { return phone; }
     public Set<CounterpartyRole> getRoles() { return Set.copyOf(roles); }
+    public Set<String> getWorkTypes() { return Set.copyOf(workTypes); }
     public CheckStatus getCheckStatus() { return checkStatus; }
     public Instant getLastCheckedAt() { return lastCheckedAt; }
     public Instant getCreatedAt() { return createdAt; }
